@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Noventis - Cars learn to drive preview</title>
+    <style>
+      :root {
+        --bg: #0a0a0d;
+        --text: #f1ece3;
+        --muted: #aca393;
+        --copper: #c4884d;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .stage {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        background:
+          radial-gradient(900px 500px at 50% 50%, rgba(196, 136, 77, 0.04), transparent 70%),
+          var(--bg);
+      }
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        pointer-events: none;
+        padding: 6vh 2rem 0;
+        text-align: center;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.24em;
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin: 0 0 0.6rem;
+      }
+      h1 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 400;
+        font-size: clamp(1.5rem, 3vw, 2.4rem);
+        margin: 0 0 0.6rem;
+      }
+      .hud {
+        position: absolute;
+        bottom: 2.8rem;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.4rem 2.2rem;
+        padding: 0 1rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(172, 163, 147, 0.7);
+        pointer-events: none;
+      }
+      .hud strong {
+        color: var(--copper);
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        font-variant-numeric: tabular-nums;
+      }
+      .caption {
+        position: absolute;
+        bottom: 1.1rem;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(172, 163, 147, 0.5);
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <canvas id="scene"></canvas>
+      <div class="overlay">
+        <p class="eyebrow">Preview · Cars learn to drive</p>
+        <h1>Most crash. The best breed.</h1>
+      </div>
+      <div class="hud">
+        <span>Generation <strong id="generation">1</strong></span>
+        <span>Alive <strong id="alive">40</strong></span>
+        <span>Best lap <strong id="lap">0.00 laps</strong></span>
+      </div>
+      <div class="caption">Five sensors · a tiny network · evolution</div>
+    </div>
+
+    <script>
+      (() => {
+        const canvas = document.getElementById('scene')
+        const ctx = canvas.getContext('2d')
+        const generationEl = document.getElementById('generation')
+        const aliveEl = document.getElementById('alive')
+        const lapEl = document.getElementById('lap')
+        const dpr = Math.min(window.devicePixelRatio || 1, 2)
+
+        const POPULATION = 40
+        const ELITES = 8
+        const SENSOR_ANGLES = [0, 30, -30, 70, -70].map((d) => (d * Math.PI) / 180)
+        const RAY_LENGTH = 130
+        const HALF_WIDTH = 24
+        const CAR_LENGTH = 18
+        const CAR_WIDTH = 9
+        const V_MIN = 55
+        const V_MAX = 160
+        const TURN_RATE = 1.9
+        const DT = 1 / 60
+        const SIM_SPEED = 3
+        const GENERATION_SECONDS = 20
+        const STALL_SECONDS = 2.5
+        const PAUSE_SECONDS = 0.7
+        const HIDDEN = 6
+        const WEIGHTS = HIDDEN * 6 + 2 * (HIDDEN + 1)
+
+        // Centre line from a smooth radial loop, resampled at equal arc length;
+        // the two walls are its offsets. Units are track units, scaled to fit at draw time.
+        function buildTrack() {
+          const F = 3000
+          const fine = []
+          for (let i = 0; i < F; i++) {
+            const t = (i / F) * Math.PI * 2
+            const r = 1 + 0.24 * Math.sin(2 * t + 0.7) + 0.2 * Math.cos(3 * t - 1.2) + 0.12 * Math.sin(5 * t + 0.4)
+            fine.push([Math.cos(t) * r * 420, Math.sin(t) * r * 260])
+          }
+          const cum = [0]
+          for (let i = 0; i < F; i++) {
+            const a = fine[i]
+            const b = fine[(i + 1) % F]
+            cum.push(cum[i] + Math.hypot(b[0] - a[0], b[1] - a[1]))
+          }
+          const total = cum[F]
+          const M = 180
+          const cx = new Float64Array(M)
+          const cy = new Float64Array(M)
+          let j = 0
+          for (let k = 0; k < M; k++) {
+            const target = (k / M) * total
+            while (cum[j + 1] < target) j++
+            const a = fine[j]
+            const b = fine[(j + 1) % F]
+            const u = (target - cum[j]) / (cum[j + 1] - cum[j])
+            cx[k] = a[0] + (b[0] - a[0]) * u
+            cy[k] = a[1] + (b[1] - a[1]) * u
+          }
+          const s = new Float64Array(M + 1)
+          for (let k = 0; k < M; k++) {
+            const n = (k + 1) % M
+            s[k + 1] = s[k] + Math.hypot(cx[n] - cx[k], cy[n] - cy[k])
+          }
+          const left = []
+          const right = []
+          for (let k = 0; k < M; k++) {
+            const p = (k - 1 + M) % M
+            const n = (k + 1) % M
+            const tx = cx[n] - cx[p]
+            const ty = cy[n] - cy[p]
+            const len = Math.hypot(tx, ty)
+            const nx = -ty / len
+            const ny = tx / len
+            left.push([cx[k] + nx * HALF_WIDTH, cy[k] + ny * HALF_WIDTH])
+            right.push([cx[k] - nx * HALF_WIDTH, cy[k] - ny * HALF_WIDTH])
+          }
+          // Wall segments as ax, ay, bx, by, minx, maxx, miny, maxy
+          const segs = new Float64Array(2 * M * 8)
+          let o = 0
+          let minx = Infinity
+          let maxx = -Infinity
+          let miny = Infinity
+          let maxy = -Infinity
+          for (const wall of [left, right]) {
+            for (let k = 0; k < M; k++) {
+              const a = wall[k]
+              const b = wall[(k + 1) % M]
+              segs[o++] = a[0]
+              segs[o++] = a[1]
+              segs[o++] = b[0]
+              segs[o++] = b[1]
+              segs[o++] = Math.min(a[0], b[0])
+              segs[o++] = Math.max(a[0], b[0])
+              segs[o++] = Math.min(a[1], b[1])
+              segs[o++] = Math.max(a[1], b[1])
+              minx = Math.min(minx, a[0])
+              maxx = Math.max(maxx, a[0])
+              miny = Math.min(miny, a[1])
+              maxy = Math.max(maxy, a[1])
+            }
+          }
+          return { M, cx, cy, s, L: s[M], left, right, segs, minx, maxx, miny, maxy }
+        }
+
+        const track = buildTrack()
+
+        let width = 0
+        let height = 0
+        const view = { k: 1, ox: 0, oy: 0 }
+
+        function resize() {
+          const rect = canvas.getBoundingClientRect()
+          width = rect.width
+          height = rect.height
+          canvas.width = Math.floor(width * dpr)
+          canvas.height = Math.floor(height * dpr)
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+          const top = height * 0.06 + 96
+          const bottom = 86
+          const side = Math.max(16, width * 0.03)
+          const availW = Math.max(60, width - side * 2)
+          const availH = Math.max(60, height - top - bottom)
+          const bw = track.maxx - track.minx + 12
+          const bh = track.maxy - track.miny + 12
+          view.k = Math.min(availW / bw, availH / bh)
+          view.ox = side + (availW - bw * view.k) / 2 - (track.minx - 6) * view.k
+          view.oy = top + (availH - bh * view.k) / 2 - (track.miny - 6) * view.k
+        }
+
+        let spare = null
+        function gauss() {
+          if (spare !== null) {
+            const v = spare
+            spare = null
+            return v
+          }
+          let u = 0
+          let v = 0
+          while (u === 0) u = Math.random()
+          while (v === 0) v = Math.random()
+          const r = Math.sqrt(-2 * Math.log(u))
+          spare = r * Math.sin(2 * Math.PI * v)
+          return r * Math.cos(2 * Math.PI * v)
+        }
+
+        function randomWeights() {
+          const w = new Float32Array(WEIGHTS)
+          for (let i = 0; i < WEIGHTS; i++) w[i] = gauss()
+          return w
+        }
+
+        function mutate(src) {
+          const w = src.slice()
+          for (let i = 0; i < w.length; i++) w[i] += gauss() * 0.08
+          const big = 1 + Math.floor(Math.random() * 3)
+          for (let k = 0; k < big; k++) w[Math.floor(Math.random() * w.length)] += gauss() * 0.8
+          return w
+        }
+
+        const hidden = new Float64Array(HIDDEN)
+        const inputs = new Float64Array(5)
+
+        function forward(w, out) {
+          let k = 0
+          for (let j = 0; j < HIDDEN; j++) {
+            let sum = w[k++]
+            for (let i = 0; i < 5; i++) sum += w[k++] * inputs[i]
+            hidden[j] = Math.tanh(sum)
+          }
+          for (let o = 0; o < 2; o++) {
+            let sum = w[k++]
+            for (let j = 0; j < HIDDEN; j++) sum += w[k++] * hidden[j]
+            out[o] = Math.tanh(sum)
+          }
+        }
+
+        function spawn(weights) {
+          return {
+            x: track.cx[0],
+            y: track.cy[0],
+            heading: Math.atan2(track.cy[1] - track.cy[0], track.cx[1] - track.cx[0]),
+            speed: V_MIN,
+            idx: 0,
+            s: 0,
+            progress: 0,
+            peak: 0,
+            peakTime: 0,
+            alive: true,
+            weights,
+            rays: new Float64Array(5),
+            out: [0, 0],
+          }
+        }
+
+        function castRay(px, py, angle) {
+          const dx = Math.cos(angle)
+          const dy = Math.sin(angle)
+          const ex = px + dx * RAY_LENGTH
+          const ey = py + dy * RAY_LENGTH
+          const minx = Math.min(px, ex)
+          const maxx = Math.max(px, ex)
+          const miny = Math.min(py, ey)
+          const maxy = Math.max(py, ey)
+          let best = RAY_LENGTH
+          const S = track.segs
+          for (let i = 0; i < S.length; i += 8) {
+            if (S[i + 4] > maxx || S[i + 5] < minx || S[i + 6] > maxy || S[i + 7] < miny) continue
+            const ax = S[i]
+            const ay = S[i + 1]
+            const ux = S[i + 2] - ax
+            const uy = S[i + 3] - ay
+            const den = dx * uy - dy * ux
+            if (Math.abs(den) < 1e-9) continue
+            const wx = ax - px
+            const wy = ay - py
+            const t = (wx * uy - wy * ux) / den
+            const u = (wx * dy - wy * dx) / den
+            if (t >= 0 && t < best && u >= 0 && u <= 1) best = t
+          }
+          return best
+        }
+
+        function segmentHitsWall(px, py, qx, qy) {
+          const dx = qx - px
+          const dy = qy - py
+          const minx = Math.min(px, qx)
+          const maxx = Math.max(px, qx)
+          const miny = Math.min(py, qy)
+          const maxy = Math.max(py, qy)
+          const S = track.segs
+          for (let i = 0; i < S.length; i += 8) {
+            if (S[i + 4] > maxx || S[i + 5] < minx || S[i + 6] > maxy || S[i + 7] < miny) continue
+            const ax = S[i]
+            const ay = S[i + 1]
+            const ux = S[i + 2] - ax
+            const uy = S[i + 3] - ay
+            const den = dx * uy - dy * ux
+            if (Math.abs(den) < 1e-9) continue
+            const wx = ax - px
+            const wy = ay - py
+            const t = (wx * uy - wy * ux) / den
+            const u = (wx * dy - wy * dx) / den
+            if (t >= 0 && t <= 1 && u >= 0 && u <= 1) return true
+          }
+          return false
+        }
+
+        const corners = new Float64Array(8)
+
+        function carHitsWall(c) {
+          const cos = Math.cos(c.heading)
+          const sin = Math.sin(c.heading)
+          const hl = CAR_LENGTH / 2
+          const hw = CAR_WIDTH / 2
+          const local = [hl, hw, hl, -hw, -hl, -hw, -hl, hw]
+          for (let i = 0; i < 4; i++) {
+            const lx = local[i * 2]
+            const ly = local[i * 2 + 1]
+            corners[i * 2] = c.x + lx * cos - ly * sin
+            corners[i * 2 + 1] = c.y + lx * sin + ly * cos
+          }
+          for (let i = 0; i < 4; i++) {
+            const j = (i + 1) % 4
+            if (segmentHitsWall(corners[i * 2], corners[i * 2 + 1], corners[j * 2], corners[j * 2 + 1])) return true
+          }
+          return false
+        }
+
+        // Signed progress along the centre line, so driving backwards scores below zero.
+        function updateProgress(c) {
+          const { cx, cy, s, L, M } = track
+          let bestI = c.idx
+          let bestD = Infinity
+          for (let k = -10; k <= 10; k++) {
+            const i = (c.idx + k + M) % M
+            const d = (cx[i] - c.x) ** 2 + (cy[i] - c.y) ** 2
+            if (d < bestD) {
+              bestD = d
+              bestI = i
+            }
+          }
+          c.idx = bestI
+          let i0 = bestI
+          let i1 = (bestI + 1) % M
+          let ux = cx[i1] - cx[i0]
+          let uy = cy[i1] - cy[i0]
+          let t = ((c.x - cx[i0]) * ux + (c.y - cy[i0]) * uy) / (ux * ux + uy * uy)
+          if (t < 0) {
+            i1 = i0
+            i0 = (bestI - 1 + M) % M
+            ux = cx[i1] - cx[i0]
+            uy = cy[i1] - cy[i0]
+            t = ((c.x - cx[i0]) * ux + (c.y - cy[i0]) * uy) / (ux * ux + uy * uy)
+          }
+          t = Math.max(0, Math.min(1, t))
+          const now = s[i0] + t * (s[i0 + 1] - s[i0])
+          let d = now - c.s
+          if (d > L / 2) d -= L
+          else if (d < -L / 2) d += L
+          c.progress += d
+          c.s = now
+        }
+
+        function stepCar(c, time) {
+          for (let k = 0; k < 5; k++) {
+            const d = castRay(c.x, c.y, c.heading + SENSOR_ANGLES[k])
+            c.rays[k] = d
+            inputs[k] = 1 - d / RAY_LENGTH
+          }
+          forward(c.weights, c.out)
+          const steer = c.out[0]
+          const throttle = (c.out[1] + 1) / 2
+          const target = V_MIN + throttle * (V_MAX - V_MIN)
+          c.speed += (target - c.speed) * Math.min(1, 4 * DT)
+          c.heading += steer * TURN_RATE * DT
+          c.x += Math.cos(c.heading) * c.speed * DT
+          c.y += Math.sin(c.heading) * c.speed * DT
+          if (carHitsWall(c)) {
+            c.alive = false
+            return
+          }
+          updateProgress(c)
+          if (c.progress > c.peak + 12) {
+            c.peak = c.progress
+            c.peakTime = time
+          } else if (time - c.peakTime > STALL_SECONDS) {
+            c.alive = false
+          }
+        }
+
+        let cars = []
+        let generation = 1
+        let generationTime = 0
+        let alive = POPULATION
+        let bestLaps = 0
+        let pauseLeft = 0
+        let accumulator = 0
+
+        function firstGeneration() {
+          cars = []
+          for (let i = 0; i < POPULATION; i++) cars.push(spawn(randomWeights()))
+        }
+
+        function nextGeneration() {
+          const ranked = cars.slice().sort((a, b) => b.progress - a.progress)
+          const parents = ranked.slice(0, ELITES).map((c) => c.weights)
+          const next = parents.map((w) => spawn(w.slice()))
+          while (next.length < POPULATION) {
+            const pick = Math.min(ELITES - 1, Math.floor(Math.random() * Math.random() * ELITES))
+            next.push(spawn(mutate(parents[pick])))
+          }
+          cars = next
+          generation++
+          generationTime = 0
+          alive = POPULATION
+        }
+
+        function simulate(seconds) {
+          accumulator += seconds
+          let n = 0
+          while (accumulator >= DT && n++ < 12) {
+            accumulator -= DT
+            if (pauseLeft > 0) {
+              pauseLeft -= DT
+              if (pauseLeft <= 0) nextGeneration()
+              continue
+            }
+            generationTime += DT
+            alive = 0
+            let bestProgress = 0
+            for (const c of cars) {
+              if (c.alive) {
+                stepCar(c, generationTime)
+                if (c.alive) alive++
+              }
+              if (c.progress > bestProgress) bestProgress = c.progress
+            }
+            if (bestProgress / track.L > bestLaps) bestLaps = bestProgress / track.L
+            if (alive === 0 || generationTime >= GENERATION_SECONDS) pauseLeft = PAUSE_SECONDS
+          }
+        }
+
+        function polygon(points) {
+          ctx.moveTo(points[0][0], points[0][1])
+          for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1])
+          ctx.closePath()
+        }
+
+        function drawCar(c, fill) {
+          ctx.save()
+          ctx.translate(c.x, c.y)
+          ctx.rotate(c.heading)
+          ctx.fillStyle = fill
+          ctx.fillRect(-CAR_LENGTH / 2, -CAR_WIDTH / 2, CAR_LENGTH, CAR_WIDTH)
+          ctx.fillStyle = 'rgba(10, 10, 13, 0.8)'
+          ctx.fillRect(CAR_LENGTH / 2 - 4, -CAR_WIDTH / 2 + 1.5, 1.6, CAR_WIDTH - 3)
+          ctx.restore()
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, width, height)
+          ctx.save()
+          ctx.translate(view.ox, view.oy)
+          ctx.scale(view.k, view.k)
+          const hair = 1 / view.k
+
+          ctx.beginPath()
+          polygon(track.left)
+          polygon(track.right)
+          ctx.fillStyle = 'rgba(241, 236, 227, 0.035)'
+          ctx.fill('evenodd')
+
+          ctx.lineWidth = 1.2 * hair
+          ctx.strokeStyle = 'rgba(241, 236, 227, 0.32)'
+          ctx.beginPath()
+          polygon(track.left)
+          ctx.stroke()
+          ctx.beginPath()
+          polygon(track.right)
+          ctx.stroke()
+
+          ctx.lineWidth = 2 * hair
+          ctx.strokeStyle = 'rgba(196, 136, 77, 0.45)'
+          ctx.beginPath()
+          ctx.moveTo(track.left[0][0], track.left[0][1])
+          ctx.lineTo(track.right[0][0], track.right[0][1])
+          ctx.stroke()
+
+          let best = null
+          for (const c of cars) {
+            if (c.alive && (!best || c.progress > best.progress)) best = c
+          }
+          if (!best) for (const c of cars) if (!best || c.progress > best.progress) best = c
+
+          for (const c of cars) if (!c.alive && c !== best) drawCar(c, 'rgba(241, 236, 227, 0.13)')
+          for (const c of cars) if (c.alive && c !== best) drawCar(c, 'rgba(241, 236, 227, 0.85)')
+
+          if (best) {
+            ctx.lineWidth = 1 * hair
+            ctx.strokeStyle = 'rgba(196, 136, 77, 0.4)'
+            ctx.fillStyle = 'rgba(196, 136, 77, 0.8)'
+            for (let k = 0; k < 5; k++) {
+              const a = best.heading + SENSOR_ANGLES[k]
+              const ex = best.x + Math.cos(a) * best.rays[k]
+              const ey = best.y + Math.sin(a) * best.rays[k]
+              ctx.beginPath()
+              ctx.moveTo(best.x, best.y)
+              ctx.lineTo(ex, ey)
+              ctx.stroke()
+              if (best.rays[k] < RAY_LENGTH) {
+                ctx.beginPath()
+                ctx.arc(ex, ey, 2.2, 0, Math.PI * 2)
+                ctx.fill()
+              }
+            }
+            drawCar(best, '#c4884d')
+          }
+          ctx.restore()
+
+          generationEl.textContent = generation
+          aliveEl.textContent = alive
+          lapEl.textContent = bestLaps.toFixed(2) + ' laps'
+        }
+
+        let running = false
+        let rafId = 0
+        let last = 0
+
+        function frame(now) {
+          if (!running) return
+          const dt = Math.min(0.1, Math.max(0, (now - last) / 1000))
+          last = now
+          simulate(dt * SIM_SPEED)
+          draw()
+          rafId = requestAnimationFrame(frame)
+        }
+
+        function start() {
+          if (running) return
+          running = true
+          last = performance.now()
+          rafId = requestAnimationFrame(frame)
+        }
+
+        function stop() {
+          running = false
+          cancelAnimationFrame(rafId)
+        }
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) stop()
+          else start()
+        })
+        window.addEventListener('resize', resize)
+
+        resize()
+        firstGeneration()
+        draw()
+        start()
+      })()
+    </script>
+  </body>
+</html>

@@ -17,6 +17,17 @@ const EXPERIMENTS: Experiment[] = [
   { id: 'hacking', name: 'Terminal hack', src: '/previews/hacking.html' },
   { id: 'special', name: 'S.P.E.C.I.A.L.', src: '/previews/special.html' },
   { id: 'lockpick', name: 'Lockpicking', src: '/previews/lockpick.html' },
+  { id: 'city', name: 'Code city', src: '/previews/city.html' },
+  { id: 'system', name: 'Exploded system', src: '/previews/system.html' },
+  { id: 'portrait', name: 'Portrait in particles', src: '/previews/portrait.html' },
+  { id: 'flock', name: 'Migration', src: '/previews/flock.html' },
+  { id: 'snake-learns', name: 'Snake learns', src: '/previews/snake-learns.html' },
+  { id: 'cars', name: 'Cars learn to drive', src: '/previews/cars.html' },
+  { id: 'teach', name: 'Teach it a shape', src: '/previews/teach.html' },
+  { id: 'balance', name: 'Keep it balanced', src: '/previews/balance.html' },
+  { id: 'eventloop', name: 'The event loop', src: '/previews/eventloop.html' },
+  { id: 'migrate', name: 'Spreadsheet to system', src: '/previews/migrate.html' },
+  { id: 'cutover', name: 'Switching the database under traffic', src: '/previews/cutover.html' },
 ]
 
 const LAST_KEY = 'noventis-labs-last'

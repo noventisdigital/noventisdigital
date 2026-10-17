@@ -92,6 +92,11 @@
         ],
         "createdAt": "2026-10-16T08:11:20.805Z",
         "reason": "Claude: deck slides on a fixed 1920x1080 canvas; the slide type scale (18 to 128px) is the canvas scale, not the site ramp, as with the existing oversized-h1 entry"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "ui",
+        "createdAt": "2026-10-17T11:05:56.732Z"
       }
     ]
   }

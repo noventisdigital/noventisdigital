@@ -364,7 +364,7 @@ A grey room with ink lettering, one dark plate and one copper accent. Fourteen v
 - **Session bar** (600, 12px, 0.14em, uppercase, log muted): the two ends of the session's bar, NOVENTIS · SESSION and AI TRANSFORMATION EXPERTISE.
 - **Label** (600, 11px, 0.14em, uppercase): section head labels on the ground in soft ink ("Pick yours", "Client portal", "One person", "Enquiry form"); inside the notation the column heads (Request, Route, On call), the diagram's route labels and the hover destination, all at 0.6875em of the 16px base in log muted. Form field names use 0.12em in soft ink.
 - **Caption** (400, 11px, 0.08em, uppercase, muted ink): the line at the foot of every light plate.
-- **Number** (700, 12px, 125% width, 0.14em, uppercase): the route numbers on the routes plate ("01 Build") and "Labs · item NN of 08", always in ink.
+- **Number** (700, 12px, 125% width, 0.14em, uppercase): the route numbers on the routes plate ("01 Build") and "Labs · item NN of 19", always in ink.
 - **Route path** (600, 13px, 125% width, 0.06em): the route cell of the notation table ("/build"). In the diagram it drops to 11px, 100% width, 0.14em, uppercase, muted, centred on the line. The table's On call cell ("24/7") is 15px in copper.
 - **Flag** (700, 10px, 0.14em, uppercase, 1px ink border): "Sent", "Not sent".
 - **Action** (600, 13px, 0.1em, uppercase): buttons. The index uses the same voice at 12px.
@@ -456,7 +456,7 @@ Three rows that hold their position while the notation around them redraws. Each
 Three numbered rows on one plate, never three cards: 110px number column, 5fr title and problem, 7fr answer, 28px gaps, 20px by 22px padding, soft keyline between rows and none after the last. The number is the expanded number voice ("01 Build") in ink, the title 18px 600, the problem and answer 16px soft ink. The proof captions under the answers were cut on 17 October 2026 after an outside review; the sections below do the proving. Each row is an anchor target for the header index and the notation.
 
 ### Labs
-The experiment is the item. The head reads "Labs · item NN of 08" in the number voice with the experiment's name in the headline voice; the iframe sits inside a plate on the grey ground, its dark stage (`labs-stage`) contained by the plate, with a caption at the foot; the actions row carries the primary button, a link and a `kbd` hint.
+The experiment is the item. The head reads "Labs · item NN of 19" in the number voice with the experiment's name in the headline voice; the iframe sits inside a plate on the grey ground, its dark stage (`labs-stage`) contained by the plate, with a caption at the foot; the actions row carries the primary button, a link and a `kbd` hint.
 
 ## Do's and Don'ts
 

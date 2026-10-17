@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Noventis - teach it a shape preview</title>
+    <style>
+      :root {
+        --bg: #0a0a0d;
+        --text: #f1ece3;
+        --muted: #aca393;
+        --copper: #c4884d;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .stage {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        background:
+          radial-gradient(900px 500px at 50% 50%, rgba(196, 136, 77, 0.04), transparent 70%),
+          var(--bg);
+      }
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+        cursor: crosshair;
+      }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        pointer-events: none;
+        padding: 5vh 2rem 0;
+        text-align: center;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.24em;
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin: 0 0 0.6rem;
+      }
+      h1 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 400;
+        font-size: clamp(1.5rem, 3vw, 2.4rem);
+        margin: 0;
+      }
+      .controls {
+        position: absolute;
+        bottom: 4.6rem;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        gap: 0.6rem;
+        pointer-events: none;
+      }
+      .controls button {
+        pointer-events: auto;
+        appearance: none;
+        background: transparent;
+        border: 1px solid rgba(241, 236, 227, 0.22);
+        border-radius: 999px;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        padding: 0.45rem 1.1rem;
+        cursor: pointer;
+        opacity: 0.55;
+        transition: color 160ms ease, border-color 160ms ease, opacity 200ms ease;
+      }
+      .controls.is-ready button { opacity: 1; }
+      .controls button:hover { border-color: rgba(241, 236, 227, 0.5); }
+      .controls button.is-active {
+        color: var(--copper);
+        border-color: var(--copper);
+        opacity: 1;
+      }
+      .hud {
+        position: absolute;
+        bottom: 2.6rem;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        gap: clamp(1rem, 3vw, 2.2rem);
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(172, 163, 147, 0.7);
+        pointer-events: none;
+        font-variant-numeric: tabular-nums;
+      }
+      .hud strong {
+        color: var(--copper);
+        font-weight: 500;
+        letter-spacing: 0.1em;
+      }
+      .caption {
+        position: absolute;
+        bottom: 1.1rem;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 0.72rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(172, 163, 147, 0.5);
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <canvas id="pad"></canvas>
+      <div class="overlay">
+        <p class="eyebrow">Preview · Teach it a shape</p>
+        <h1>Show it three times. Then it knows.</h1>
+      </div>
+      <div class="controls" id="controls">
+        <button type="button" data-label="Circle">Circle</button>
+        <button type="button" data-label="Square">Square</button>
+        <button type="button" data-label="Zigzag">Zigzag</button>
+      </div>
+      <div class="hud">
+        <span>Examples <strong id="examples">0</strong></span>
+        <span>Guess <strong id="guess">none</strong></span>
+        <span>Score <strong id="score">0.00</strong></span>
+      </div>
+      <div class="caption">Draw, label, draw again</div>
+    </div>
+
+    <script>
+      (() => {
+        // $1 unistroke recogniser (Wobbrock, Wilson and Li, 2007):
+        // resample to N points, rotate so the first point sits at angle zero
+        // from the centroid, scale to a square, centre, then nearest template
+        // with a golden-section search over a small rotation range.
+        const N = 32
+        const SIZE = 250
+        const HALF_DIAG = 0.5 * Math.sqrt(2 * SIZE * SIZE)
+        const TAU = Math.PI * 2
+        const PHI = 0.5 * (-1 + Math.sqrt(5))
+
+        function pathLength(pts) {
+          let d = 0
+          for (let i = 1; i < pts.length; i++) d += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y)
+          return d
+        }
+
+        function resample(points, n) {
+          const pts = points.map((p) => ({ x: p.x, y: p.y }))
+          const interval = pathLength(pts) / (n - 1)
+          const out = [{ x: pts[0].x, y: pts[0].y }]
+          let acc = 0
+          for (let i = 1; i < pts.length; i++) {
+            const d = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y)
+            if (d > 0 && acc + d >= interval) {
+              const t = (interval - acc) / d
+              const q = { x: pts[i - 1].x + t * (pts[i].x - pts[i - 1].x), y: pts[i - 1].y + t * (pts[i].y - pts[i - 1].y) }
+              out.push(q)
+              pts.splice(i, 0, q)
+              acc = 0
+            } else {
+              acc += d
+            }
+          }
+          while (out.length < n) out.push({ x: out[out.length - 1].x, y: out[out.length - 1].y })
+          return out.slice(0, n)
+        }
+
+        function centroid(pts) {
+          let x = 0
+          let y = 0
+          for (const p of pts) { x += p.x; y += p.y }
+          return { x: x / pts.length, y: y / pts.length }
+        }
+
+        function rotateBy(pts, a) {
+          const c = centroid(pts)
+          const cos = Math.cos(a)
+          const sin = Math.sin(a)
+          return pts.map((p) => ({
+            x: (p.x - c.x) * cos - (p.y - c.y) * sin + c.x,
+            y: (p.x - c.x) * sin + (p.y - c.y) * cos + c.y,
+          }))
+        }
+
+        function normalise(points) {
+          let p = resample(points, N)
+          const c0 = centroid(p)
+          p = rotateBy(p, -Math.atan2(c0.y - p[0].y, c0.x - p[0].x))
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+          for (const q of p) {
+            if (q.x < minX) minX = q.x
+            if (q.x > maxX) maxX = q.x
+            if (q.y < minY) minY = q.y
+            if (q.y > maxY) maxY = q.y
+          }
+          const w = Math.max(maxX - minX, 1)
+          const h = Math.max(maxY - minY, 1)
+          p = p.map((q) => ({ x: q.x * SIZE / w, y: q.y * SIZE / h }))
+          const c = centroid(p)
+          return p.map((q) => ({ x: q.x - c.x, y: q.y - c.y }))
+        }
+
+        function pathDistance(a, b) {
+          let d = 0
+          for (let i = 0; i < a.length; i++) d += Math.hypot(a[i].x - b[i].x, a[i].y - b[i].y)
+          return d / a.length
+        }
+
+        function distanceAtBestAngle(pts, tpl) {
+          let a = -Math.PI / 4
+          let b = Math.PI / 4
+          const threshold = (2 * Math.PI) / 180
+          let x1 = PHI * a + (1 - PHI) * b
+          let f1 = pathDistance(rotateBy(pts, x1), tpl)
+          let x2 = (1 - PHI) * a + PHI * b
+          let f2 = pathDistance(rotateBy(pts, x2), tpl)
+          while (Math.abs(b - a) > threshold) {
+            if (f1 < f2) {
+              b = x2; x2 = x1; f2 = f1
+              x1 = PHI * a + (1 - PHI) * b
+              f1 = pathDistance(rotateBy(pts, x1), tpl)
+            } else {
+              a = x1; x1 = x2; f1 = f2
+              x2 = (1 - PHI) * a + PHI * b
+              f2 = pathDistance(rotateBy(pts, x2), tpl)
+            }
+          }
+          return Math.min(f1, f2)
+        }
+
+        function recognise(points, templates) {
+          if (!templates.length) return null
+          const u = normalise(points)
+          let best = Infinity
+          let label = null
+          for (const t of templates) {
+            const d = distanceAtBestAngle(u, t.points)
+            if (d < best) { best = d; label = t.label }
+          }
+          return { label, score: Math.max(0, 1 - best / HALF_DIAG) }
+        }
+
+        // Demo shapes, deliberately imperfect.
+        function wobblyCircle(cx, cy, r, rnd) {
+          const n = 64
+          const dir = rnd() < 0.5 ? 1 : -1
+          const a0 = rnd() * TAU
+          const sweep = TAU * (0.92 + rnd() * 0.16)
+          const f1 = rnd() * TAU, f2 = rnd() * TAU
+          const w1 = 0.04 + rnd() * 0.06, w2 = 0.02 + rnd() * 0.04
+          const ax = 1 + (rnd() - 0.5) * 0.24
+          const pts = []
+          for (let i = 0; i <= n; i++) {
+            const a = a0 + dir * sweep * (i / n)
+            const rr = r * (1 + w1 * Math.sin(3 * a + f1) + w2 * Math.sin(5 * a + f2))
+            pts.push({ x: cx + rr * Math.cos(a) * ax + (rnd() - 0.5) * 2, y: cy + rr * Math.sin(a) + (rnd() - 0.5) * 2 })
+          }
+          return pts
+        }
+
+        function wobblySquare(cx, cy, s, rnd) {
+          const hw = s * (0.9 + rnd() * 0.2)
+          const hh = s * (0.9 + rnd() * 0.2)
+          const rot = (rnd() - 0.5) * 0.3
+          const cos = Math.cos(rot), sin = Math.sin(rot)
+          const corners = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([x, y]) => ({
+            x: cx + x * cos - y * sin + (rnd() - 0.5) * s * 0.1,
+            y: cy + x * sin + y * cos + (rnd() - 0.5) * s * 0.1,
+          }))
+          const start = Math.floor(rnd() * 4)
+          const dir = rnd() < 0.5 ? 1 : -1
+          const close = 0.9 + rnd() * 0.2
+          const per = 12
+          const pts = []
+          for (let side = 0; side < 4; side++) {
+            const a = corners[(start + dir * side + 8) % 4]
+            const b = corners[(start + dir * (side + 1) + 8) % 4]
+            const bow = (rnd() - 0.5) * s * 0.08
+            const nx = -(b.y - a.y), ny = b.x - a.x
+            const nl = Math.hypot(nx, ny) || 1
+            const last = side === 3 ? close : 1
+            for (let i = 0; i < per; i++) {
+              const t = (i / per) * last
+              if (t > 1) break
+              const k = Math.sin(Math.PI * t) * bow
+              pts.push({
+                x: a.x + (b.x - a.x) * t + (nx / nl) * k + (rnd() - 0.5) * 2,
+                y: a.y + (b.y - a.y) * t + (ny / nl) * k + (rnd() - 0.5) * 2,
+              })
+            }
+          }
+          return pts
+        }
+
+        function wobblyZigzag(cx, cy, s, rnd) {
+          const segs = 4 + Math.floor(rnd() * 3)
+          const width = 2 * s * (0.9 + rnd() * 0.2)
+          const amp = s * (0.5 + rnd() * 0.4)
+          const rot = (rnd() - 0.5) * 0.25
+          const cos = Math.cos(rot), sin = Math.sin(rot)
+          let up = rnd() < 0.5 ? 1 : -1
+          const verts = []
+          for (let i = 0; i <= segs; i++) {
+            verts.push({
+              x: -width / 2 + (width * i) / segs + (rnd() - 0.5) * width * 0.05,
+              y: up * amp + (rnd() - 0.5) * amp * 0.16,
+            })
+            up = -up
+          }
+          if (rnd() < 0.5) verts.reverse()
+          const place = (x, y) => ({ x: cx + x * cos - y * sin, y: cy + x * sin + y * cos })
+          const per = 8
+          const pts = []
+          for (let i = 0; i < segs; i++) {
+            const a = verts[i], b = verts[i + 1]
+            for (let j = 0; j < per; j++) {
+              const t = j / per
+              pts.push(place(a.x + (b.x - a.x) * t + (rnd() - 0.5) * 2, a.y + (b.y - a.y) * t + (rnd() - 0.5) * 2))
+            }
+          }
+          pts.push(place(verts[segs].x, verts[segs].y))
+          return pts
+        }
+
+        const LABELS = ['Circle', 'Square', 'Zigzag']
+        const SHAPES = { Circle: wobblyCircle, Square: wobblySquare, Zigzag: wobblyZigzag }
+
+        const canvas = document.getElementById('pad')
+        const ctx = canvas.getContext('2d')
+        const h1 = document.querySelector('h1')
+        const controls = document.getElementById('controls')
+        const buttons = Array.from(controls.querySelectorAll('button'))
+        const examplesEl = document.getElementById('examples')
+        const guessEl = document.getElementById('guess')
+        const scoreEl = document.getElementById('score')
+        const dpr = Math.min(window.devicePixelRatio || 1, 2)
+        const hasTracking = 'letterSpacing' in ctx
+
+        let W = 0
+        let H = 0
+        let pad = { x: 0, y: 0, w: 0, h: 0 }
+
+        function resize() {
+          const rect = canvas.getBoundingClientRect()
+          W = rect.width
+          H = rect.height
+          canvas.width = Math.floor(W * dpr)
+          canvas.height = Math.floor(H * dpr)
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+          const top = h1.getBoundingClientRect().bottom - rect.top + 14
+          const bottom = controls.getBoundingClientRect().top - rect.top - 14
+          const ph = Math.max(110, bottom - top)
+          const pw = Math.max(200, Math.min(W - 32, Math.max(ph * 1.5, 300)))
+          pad = { x: (W - pw) / 2, y: top, w: pw, h: ph }
+          if (demo.active && demo.phase === 'drawing') {
+            stroke = null
+            demo.phase = 'wait'
+            demo.wait = 0.4
+          }
+        }
+
+        const templates = []
+        let examples = 0
+        let stroke = null
+        let drawing = false
+        let lastInput = performance.now()
+        let flashTimer = 0
+
+        const demo = { active: true, phase: 'wait', wait: 0.5, taught: 0, label: null, teach: false }
+
+        function setGuess(g) {
+          guessEl.textContent = g ? g.label.toLowerCase() : 'none'
+          scoreEl.textContent = g ? g.score.toFixed(2) : '0.00'
+        }
+
+        function finishStroke() {
+          if (!stroke) return
+          stroke.done = true
+          const g = recognise(stroke.pts, templates)
+          stroke.guess = g
+          setGuess(g)
+          controls.classList.add('is-ready')
+        }
+
+        function labelStroke(label) {
+          if (!stroke || !stroke.done || stroke.label) return
+          templates.push({ label, points: normalise(stroke.pts) })
+          templates.push({ label, points: normalise(stroke.pts.slice().reverse()) })
+          examples++
+          examplesEl.textContent = examples
+          stroke.label = label
+          stroke.hold = 0.5
+          controls.classList.remove('is-ready')
+          for (const b of buttons) b.classList.toggle('is-active', b.dataset.label === label)
+          flashTimer = 0.7
+        }
+
+        function startDemoStroke() {
+          const teaching = demo.taught < 3
+          const label = teaching ? LABELS[demo.taught] : LABELS[Math.floor(Math.random() * 3)]
+          const s = Math.min(pad.w, pad.h) * 0.3
+          const cx = pad.x + pad.w / 2 + (Math.random() - 0.5) * pad.w * 0.1
+          const cy = pad.y + pad.h / 2 + (Math.random() - 0.5) * pad.h * 0.1
+          const src = SHAPES[label](cx, cy, s, Math.random)
+          const cum = [0]
+          for (let i = 1; i < src.length; i++) cum.push(cum[i - 1] + Math.hypot(src[i].x - src[i - 1].x, src[i].y - src[i - 1].y))
+          stroke = { pts: [src[0]], src, cum, drawn: 0, done: false, alpha: 1, label: null, guess: null, hold: 0 }
+          demo.label = label
+          demo.teach = teaching || (examples < 12 && Math.random() < 0.3)
+          demo.phase = 'drawing'
+          setGuess(null)
+        }
+
+        function revealDemo(dt) {
+          const s = stroke
+          s.drawn += dt * 520
+          const total = s.cum[s.cum.length - 1]
+          if (s.drawn >= total) {
+            s.pts = s.src.slice()
+            finishStroke()
+            demo.phase = 'look'
+            demo.wait = 0.8
+            return
+          }
+          let i = 1
+          while (i < s.cum.length && s.cum[i] <= s.drawn) i++
+          const pts = s.src.slice(0, i)
+          const a = s.src[i - 1], b = s.src[i]
+          const seg = s.cum[i] - s.cum[i - 1]
+          const t = seg > 0 ? (s.drawn - s.cum[i - 1]) / seg : 0
+          pts.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t })
+          s.pts = pts
+        }
+
+        function updateDemo(dt) {
+          switch (demo.phase) {
+            case 'wait':
+              demo.wait -= dt
+              if (demo.wait <= 0) startDemoStroke()
+              break
+            case 'drawing':
+              revealDemo(dt)
+              break
+            case 'look':
+              demo.wait -= dt
+              if (demo.wait <= 0) {
+                if (demo.teach) {
+                  labelStroke(demo.label)
+                  if (demo.taught < 3) demo.taught++
+                  demo.phase = 'labelled'
+                  demo.wait = 0.9
+                } else {
+                  demo.phase = 'fade'
+                }
+              }
+              break
+            case 'labelled':
+              demo.wait -= dt
+              if (demo.wait <= 0) demo.phase = 'fade'
+              break
+            case 'fade':
+              if (stroke) stroke.alpha -= dt * 2.2
+              if (!stroke || stroke.alpha <= 0) {
+                stroke = null
+                controls.classList.remove('is-ready')
+                demo.phase = 'wait'
+                demo.wait = 0.5
+              }
+              break
+          }
+        }
+
+        function stopDemo() {
+          if (!demo.active) return
+          demo.active = false
+          if (stroke && !stroke.done) stroke = null
+        }
+
+        function update(dt, now) {
+          if (flashTimer > 0) {
+            flashTimer -= dt
+            if (flashTimer <= 0) for (const b of buttons) b.classList.remove('is-active')
+          }
+          if (demo.active) {
+            updateDemo(dt)
+          } else {
+            if (stroke && stroke.label) {
+              stroke.hold -= dt
+              if (stroke.hold <= 0) stroke.alpha -= dt * 2.2
+              if (stroke.alpha <= 0) stroke = null
+            }
+            if (!drawing && now - lastInput > 45000) {
+              demo.active = true
+              demo.phase = 'fade'
+            }
+          }
+        }
+
+        function roundRect(x, y, w, h, r) {
+          ctx.beginPath()
+          ctx.moveTo(x + r, y)
+          ctx.arcTo(x + w, y, x + w, y + h, r)
+          ctx.arcTo(x + w, y + h, x, y + h, r)
+          ctx.arcTo(x, y + h, x, y, r)
+          ctx.arcTo(x, y, x + w, y, r)
+          ctx.closePath()
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, W, H)
+
+          roundRect(pad.x, pad.y, pad.w, pad.h, 8)
+          ctx.fillStyle = '#0c0c10'
+          ctx.fill()
+          ctx.strokeStyle = 'rgba(255, 245, 232, 0.08)'
+          ctx.lineWidth = 1
+          ctx.stroke()
+
+          ctx.fillStyle = 'rgba(236, 225, 210, 0.05)'
+          const step = 24
+          for (let y = pad.y + step; y < pad.y + pad.h - 4; y += step) {
+            for (let x = pad.x + step; x < pad.x + pad.w - 4; x += step) ctx.fillRect(x - 0.5, y - 0.5, 1, 1)
+          }
+
+          ctx.font = '500 10px -apple-system, system-ui, sans-serif'
+          if (hasTracking) ctx.letterSpacing = '0.2em'
+          ctx.textBaseline = 'top'
+          ctx.textAlign = 'left'
+          ctx.fillStyle = demo.active ? 'rgba(196, 136, 77, 0.75)' : 'rgba(172, 163, 147, 0.45)'
+          ctx.fillText(demo.active ? 'DEMO' : 'YOUR TURN', pad.x + 12, pad.y + 10)
+
+          if (stroke && stroke.pts.length > 1) {
+            const a = Math.max(0, stroke.alpha)
+            ctx.strokeStyle = stroke.label ? `rgba(196, 136, 77, ${a})` : `rgba(241, 236, 227, ${0.9 * a})`
+            ctx.lineWidth = 2.5
+            ctx.lineCap = 'round'
+            ctx.lineJoin = 'round'
+            ctx.beginPath()
+            ctx.moveTo(stroke.pts[0].x, stroke.pts[0].y)
+            for (let i = 1; i < stroke.pts.length; i++) ctx.lineTo(stroke.pts[i].x, stroke.pts[i].y)
+            ctx.stroke()
+            if (demo.active && !stroke.done) {
+              const tip = stroke.pts[stroke.pts.length - 1]
+              ctx.fillStyle = 'rgba(196, 136, 77, 0.95)'
+              ctx.beginPath()
+              ctx.arc(tip.x, tip.y, 3.5, 0, TAU)
+              ctx.fill()
+            }
+          }
+        }
+
+        function pointAt(e) {
+          const rect = canvas.getBoundingClientRect()
+          return { x: e.clientX - rect.left, y: e.clientY - rect.top }
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+          if (!e.isPrimary) return
+          e.preventDefault()
+          lastInput = performance.now()
+          stopDemo()
+          canvas.setPointerCapture(e.pointerId)
+          drawing = true
+          stroke = { pts: [pointAt(e)], done: false, alpha: 1, label: null, guess: null, hold: 0 }
+          controls.classList.remove('is-ready')
+          setGuess(null)
+        })
+
+        canvas.addEventListener('pointermove', (e) => {
+          if (!drawing || !e.isPrimary || !stroke) return
+          const p = pointAt(e)
+          const last = stroke.pts[stroke.pts.length - 1]
+          if (Math.hypot(p.x - last.x, p.y - last.y) >= 1.5) stroke.pts.push(p)
+        })
+
+        function endStroke(e) {
+          if (!drawing || !e.isPrimary) return
+          drawing = false
+          lastInput = performance.now()
+          if (!stroke) return
+          if (stroke.pts.length < 4 || pathLength(stroke.pts) < 12) {
+            stroke = null
+            return
+          }
+          finishStroke()
+        }
+        canvas.addEventListener('pointerup', endStroke)
+        canvas.addEventListener('pointercancel', endStroke)
+
+        for (const b of buttons) {
+          b.addEventListener('click', () => {
+            lastInput = performance.now()
+            stopDemo()
+            labelStroke(b.dataset.label)
+          })
+        }
+
+        let raf = 0
+        let last = 0
+        function frame(now) {
+          raf = requestAnimationFrame(frame)
+          const dt = last ? Math.min(0.05, (now - last) / 1000) : 0
+          last = now
+          update(dt, now)
+          draw()
+        }
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            cancelAnimationFrame(raf)
+            raf = 0
+            last = 0
+          } else if (!raf) {
+            raf = requestAnimationFrame(frame)
+          }
+        })
+
+        window.addEventListener('resize', resize)
+        resize()
+        raf = requestAnimationFrame(frame)
+      })()
+    </script>
+  </body>
+</html>

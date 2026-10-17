@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Noventis - keep it balanced preview</title>
+    <style>
+      :root {
+        --bg: #0a0a0d;
+        --text: #f1ece3;
+        --muted: #aca393;
+        --copper: #c4884d;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .stage {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        background:
+          radial-gradient(900px 500px at 50% 50%, rgba(196, 136, 77, 0.04), transparent 70%),
+          var(--bg);
+      }
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: manipulation;
+        cursor: pointer;
+      }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        pointer-events: none;
+        padding: 5vh 2rem 0;
+        text-align: center;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.24em;
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin: 0 0 0.6rem;
+      }
+      h1 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 400;
+        font-size: clamp(1.5rem, 3vw, 2.4rem);
+        margin: 0;
+      }
+      .gains {
+        position: absolute;
+        bottom: 4.6rem;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        gap: clamp(0.6rem, 3vw, 2rem);
+        pointer-events: none;
+      }
+      .gains label {
+        pointer-events: auto;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .gains output {
+        color: var(--muted);
+        letter-spacing: 0.05em;
+        min-width: 2.2em;
+      }
+      .gains input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: clamp(56px, 13vw, 120px);
+        height: 22px;
+        margin: 0;
+        background: transparent;
+        cursor: pointer;
+      }
+      .gains input[type="range"]:focus { outline: none; }
+      .gains input[type="range"]::-webkit-slider-runnable-track {
+        height: 1px;
+        background: rgba(241, 236, 227, 0.3);
+      }
+      .gains input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 0;
+        background: var(--copper);
+        margin-top: -5.5px;
+      }
+      .gains input[type="range"]::-moz-range-track {
+        height: 1px;
+        background: rgba(241, 236, 227, 0.3);
+      }
+      .gains input[type="range"]::-moz-range-thumb {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 0;
+        background: var(--copper);
+      }
+      .hud {
+        position: absolute;
+        bottom: 2.6rem;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        gap: clamp(1rem, 3vw, 2.2rem);
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(172, 163, 147, 0.7);
+        pointer-events: none;
+        font-variant-numeric: tabular-nums;
+      }
+      .hud strong {
+        color: var(--copper);
+        font-weight: 500;
+        letter-spacing: 0.1em;
+      }
+      .caption {
+        position: absolute;
+        bottom: 1.1rem;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 0.72rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(172, 163, 147, 0.5);
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <canvas id="scene"></canvas>
+      <div class="overlay">
+        <p class="eyebrow">Preview · Keep it balanced</p>
+        <h1>A loop that keeps a thing standing.</h1>
+      </div>
+      <div class="gains" id="gains">
+        <label>P <input type="range" id="kp" min="0" max="150" step="1" value="60" /><output id="kpv">60</output></label>
+        <label>I <input type="range" id="ki" min="0" max="200" step="1" value="5" /><output id="kiv">5</output></label>
+        <label>D <input type="range" id="kd" min="0" max="40" step="0.5" value="12" /><output id="kdv">12</output></label>
+      </div>
+      <div class="hud">
+        <span>Angle <strong id="angle">0.0 deg</strong></span>
+        <span>Push <strong id="push">0</strong></span>
+        <span>Falls <strong id="falls">0</strong></span>
+      </div>
+      <div class="caption">PID control · tap to push it · tune the gains</div>
+    </div>
+
+    <script>
+      (() => {
+        // Cart-pole: theta is the pole angle from vertical, positive with the
+        // tip to the right; force is positive to the right. Equations from
+        // Barto, Sutton and Anderson (1983) with viscous cart friction and a
+        // little pivot friction, integrated with RK4 at a fixed step.
+        const G = 9.81
+        const CART_MASS = 1.0
+        const POLE_MASS = 0.2
+        const HALF_LEN = 0.5
+        const POLE_LEN = 1.0
+        const CART_FRICTION = 0.4
+        const PIVOT_FRICTION = 0.004
+        const RAIL_HALF = 2.0
+        const FORCE_MAX = 30
+        const DT = 1 / 120
+        const FALL_ANGLE = 0.7
+        const DOWN_ANGLE = 1.5
+        const TAU = Math.PI * 2
+
+        function derivatives(s, force) {
+          const sin = Math.sin(s.th)
+          const cos = Math.cos(s.th)
+          const total = CART_MASS + POLE_MASS
+          const f = force - CART_FRICTION * s.v
+          const temp = (f + POLE_MASS * HALF_LEN * s.w * s.w * sin) / total
+          const thAcc = (G * sin - cos * temp - PIVOT_FRICTION * s.w / (POLE_MASS * HALF_LEN)) /
+            (HALF_LEN * (4 / 3 - POLE_MASS * cos * cos / total))
+          const xAcc = temp - POLE_MASS * HALF_LEN * thAcc * cos / total
+          return { x: s.v, v: xAcc, th: s.w, w: thAcc }
+        }
+
+        function rk4(s, force, dt) {
+          const add = (a, k, h) => ({ x: a.x + k.x * h, v: a.v + k.v * h, th: a.th + k.th * h, w: a.w + k.w * h })
+          const k1 = derivatives(s, force)
+          const k2 = derivatives(add(s, k1, dt / 2), force)
+          const k3 = derivatives(add(s, k2, dt / 2), force)
+          const k4 = derivatives(add(s, k3, dt), force)
+          return {
+            x: s.x + (dt / 6) * (k1.x + 2 * k2.x + 2 * k3.x + k4.x),
+            v: s.v + (dt / 6) * (k1.v + 2 * k2.v + 2 * k3.v + k4.v),
+            th: s.th + (dt / 6) * (k1.th + 2 * k2.th + 2 * k3.th + k4.th),
+            w: s.w + (dt / 6) * (k1.w + 2 * k2.w + 2 * k3.w + k4.w),
+          }
+        }
+
+        // PID on the pole angle. The setpoint leans slightly towards the
+        // centre of the rail, which is what brings the cart back home.
+        const POS_GAIN = 0.06
+        const VEL_GAIN = 0.16
+        const LEAN_MAX = 0.1
+        const INTEGRAL_MAX = 2
+        const gains = { p: 60, i: 5, d: 12 }
+        let integral = 0
+        let idle = 0
+
+        function controlForce(s) {
+          const lean = Math.max(-LEAN_MAX, Math.min(LEAN_MAX, POS_GAIN * s.x + VEL_GAIN * s.v))
+          const e = s.th + lean
+          integral = Math.max(-INTEGRAL_MAX, Math.min(INTEGRAL_MAX, integral + e * DT))
+          const f = gains.p * e + gains.i * integral + gains.d * s.w
+          return Math.max(-FORCE_MAX, Math.min(FORCE_MAX, f))
+        }
+
+        const canvas = document.getElementById('scene')
+        const ctx = canvas.getContext('2d')
+        const h1 = document.querySelector('h1')
+        const gainsRow = document.getElementById('gains')
+        const angleEl = document.getElementById('angle')
+        const pushEl = document.getElementById('push')
+        const fallsEl = document.getElementById('falls')
+        const dpr = Math.min(window.devicePixelRatio || 1, 2)
+        const hasTracking = 'letterSpacing' in ctx
+
+        const sliders = [
+          ['p', document.getElementById('kp'), document.getElementById('kpv')],
+          ['i', document.getElementById('ki'), document.getElementById('kiv')],
+          ['d', document.getElementById('kd'), document.getElementById('kdv')],
+        ]
+        for (const [key, input, out] of sliders) {
+          const apply = () => {
+            gains[key] = Number(input.value)
+            out.textContent = input.value
+            idle = 0
+          }
+          input.addEventListener('input', apply)
+          input.addEventListener('pointerdown', () => { idle = 0 })
+          apply()
+        }
+
+        let W = 0
+        let H = 0
+        let chart = { x: 0, y: 0, w: 0, h: 0 }
+        let railY = 0
+        let ppm = 60
+        let centreX = 0
+
+        function resize() {
+          const rect = canvas.getBoundingClientRect()
+          W = rect.width
+          H = rect.height
+          canvas.width = Math.floor(W * dpr)
+          canvas.height = Math.floor(H * dpr)
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+          const titleRect = h1.getBoundingClientRect()
+          const titleBottom = titleRect.bottom - rect.top
+          const cw = Math.max(130, Math.min(240, W * 0.26))
+          const ch = Math.round(cw * 0.42)
+          const cx = W - 16 - cw
+          const underTitle = titleRect.right - rect.left > cx - 12
+          chart = { x: cx, y: underTitle ? titleBottom + 12 : 16, w: cw, h: ch }
+
+          const sceneTop = Math.max(titleBottom, chart.y + chart.h) + 10
+          const sceneBottom = gainsRow.getBoundingClientRect().top - rect.top - 12
+          const avail = Math.max(90, sceneBottom - sceneTop)
+          ppm = Math.max(30, Math.min((W - 64) / (2 * RAIL_HALF + 1.0), (avail - 24) / 1.3))
+          railY = sceneBottom - 10
+          centreX = W / 2
+        }
+
+        let s = { x: 0, v: 0, th: 0.03, w: 0 }
+        let mode = 'balance'
+        let modeTimer = 0
+        let force = 0
+        let falls = 0
+        let pushes = 0
+        let acc = 0
+        const HISTORY = 1200
+        const history = new Float32Array(HISTORY)
+        let histHead = 0
+        let histCount = 0
+        const effects = []
+
+        function reset() {
+          s = { x: 0, v: 0, th: (Math.random() - 0.5) * 0.06, w: 0 }
+          integral = 0
+          force = 0
+          mode = 'balance'
+        }
+
+        function push(side, strength) {
+          if (mode !== 'balance') return
+          s.w += side * strength
+          pushes++
+          pushEl.textContent = pushes
+          effects.push({ side, t: 0.5 })
+        }
+
+        function step() {
+          if (mode === 'balance') {
+            force = controlForce(s)
+            s = rk4(s, force, DT)
+            if (Math.abs(s.th) > FALL_ANGLE || Math.abs(s.x) >= RAIL_HALF) {
+              mode = 'falling'
+              force = 0
+              falls++
+              fallsEl.textContent = falls
+              modeTimer = 2
+            }
+          } else if (mode === 'falling') {
+            s = rk4(s, 0, DT)
+            if (Math.abs(s.x) >= RAIL_HALF) {
+              s.x = Math.sign(s.x) * RAIL_HALF
+              s.v = 0
+            }
+            modeTimer -= DT
+            if (Math.abs(s.th) >= DOWN_ANGLE || modeTimer <= 0) {
+              s.th = Math.sign(s.th || 1) * Math.min(Math.abs(s.th), DOWN_ANGLE)
+              s.w = 0
+              s.v = 0
+              mode = 'down'
+              modeTimer = 1.1
+            }
+          } else {
+            modeTimer -= DT
+            if (modeTimer <= 0) reset()
+          }
+          history[histHead] = s.th
+          histHead = (histHead + 1) % HISTORY
+          if (histCount < HISTORY) histCount++
+        }
+
+        function update(dt) {
+          acc += dt
+          while (acc >= DT) {
+            step()
+            acc -= DT
+          }
+          idle += dt
+          if (idle >= 6 && mode === 'balance') {
+            push(Math.random() < 0.5 ? 1 : -1, 0.6)
+            idle = 0
+          }
+          for (let i = effects.length - 1; i >= 0; i--) {
+            effects[i].t -= dt
+            if (effects[i].t <= 0) effects.splice(i, 1)
+          }
+          const deg = (s.th * 180) / Math.PI
+          angleEl.textContent = (Math.abs(deg) < 0.05 ? 0 : deg).toFixed(1) + ' deg'
+        }
+
+        function roundRect(x, y, w, h, r) {
+          ctx.beginPath()
+          ctx.moveTo(x + r, y)
+          ctx.arcTo(x + w, y, x + w, y + h, r)
+          ctx.arcTo(x + w, y + h, x, y + h, r)
+          ctx.arcTo(x, y + h, x, y, r)
+          ctx.arcTo(x, y, x + w, y, r)
+          ctx.closePath()
+        }
+
+        function label(text, x, y, colour, align) {
+          ctx.font = '500 10px -apple-system, system-ui, sans-serif'
+          if (hasTracking) ctx.letterSpacing = '0.2em'
+          ctx.textBaseline = 'top'
+          ctx.textAlign = align || 'left'
+          ctx.fillStyle = colour
+          ctx.fillText(text, x, y)
+        }
+
+        function drawChart() {
+          const c = chart
+          ctx.fillStyle = 'rgba(12, 12, 16, 0.92)'
+          ctx.fillRect(c.x, c.y, c.w, c.h)
+          ctx.strokeStyle = 'rgba(255, 245, 232, 0.08)'
+          ctx.lineWidth = 1
+          ctx.strokeRect(c.x + 0.5, c.y + 0.5, c.w - 1, c.h - 1)
+
+          const mid = c.y + c.h / 2
+          ctx.strokeStyle = 'rgba(196, 136, 77, 0.8)'
+          ctx.beginPath()
+          ctx.moveTo(c.x + 1, mid + 0.5)
+          ctx.lineTo(c.x + c.w - 1, mid + 0.5)
+          ctx.stroke()
+
+          const scale = (c.h / 2 - 4) / 0.35
+          ctx.strokeStyle = 'rgba(241, 236, 227, 0.85)'
+          ctx.lineWidth = 1.2
+          ctx.lineJoin = 'round'
+          ctx.beginPath()
+          const start = (histHead - histCount + HISTORY) % HISTORY
+          for (let i = 0; i < histCount; i++) {
+            const th = history[(start + i) % HISTORY]
+            const x = c.x + 1 + ((c.w - 2) * i) / (HISTORY - 1)
+            const y = mid - Math.max(-c.h / 2 + 3, Math.min(c.h / 2 - 3, th * scale))
+            if (i === 0) ctx.moveTo(x, y)
+            else ctx.lineTo(x, y)
+          }
+          ctx.stroke()
+          label('ANGLE · 10 S', c.x + 8, c.y + 6, 'rgba(172, 163, 147, 0.6)')
+        }
+
+        function drawScene() {
+          const railLeft = centreX - (RAIL_HALF + 0.25) * ppm
+          const railRight = centreX + (RAIL_HALF + 0.25) * ppm
+          ctx.strokeStyle = 'rgba(241, 236, 227, 0.28)'
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.moveTo(railLeft, railY + 0.5)
+          ctx.lineTo(railRight, railY + 0.5)
+          ctx.stroke()
+          for (const ex of [railLeft, railRight]) {
+            ctx.beginPath()
+            ctx.moveTo(ex + 0.5, railY - 10)
+            ctx.lineTo(ex + 0.5, railY + 1)
+            ctx.stroke()
+          }
+          ctx.strokeStyle = 'rgba(196, 136, 77, 0.9)'
+          ctx.beginPath()
+          ctx.moveTo(centreX + 0.5, railY + 3)
+          ctx.lineTo(centreX + 0.5, railY + 9)
+          ctx.stroke()
+
+          const cartX = centreX + s.x * ppm
+          const wr = Math.max(3, 0.045 * ppm)
+          const cartW = 0.36 * ppm
+          const cartH = Math.max(8, 0.14 * ppm)
+          const bodyBottom = railY - 2 * wr
+          const bodyTop = bodyBottom - cartH
+          const pivotX = cartX
+          const pivotY = bodyTop
+
+          const fallen = mode !== 'balance'
+          const bone = fallen ? 'rgba(172, 163, 147, 0.55)' : 'rgba(241, 236, 227, 0.9)'
+
+          if (mode === 'balance' && Math.abs(force) > 0.3) {
+            const len = (force / FORCE_MAX) * 0.5 * ppm
+            ctx.strokeStyle = 'rgba(196, 136, 77, 0.7)'
+            ctx.lineWidth = 2
+            ctx.beginPath()
+            ctx.moveTo(cartX, railY + 16)
+            ctx.lineTo(cartX + len, railY + 16)
+            ctx.stroke()
+          }
+
+          ctx.fillStyle = bone
+          for (const dx of [-cartW * 0.3, cartW * 0.3]) {
+            ctx.beginPath()
+            ctx.arc(cartX + dx, railY - wr, wr, 0, TAU)
+            ctx.fill()
+          }
+          roundRect(cartX - cartW / 2, bodyTop, cartW, cartH, 3)
+          ctx.fill()
+
+          const tipX = pivotX + POLE_LEN * ppm * Math.sin(s.th)
+          const tipY = pivotY - POLE_LEN * ppm * Math.cos(s.th)
+          ctx.strokeStyle = bone
+          ctx.lineWidth = Math.max(2, 0.03 * ppm)
+          ctx.lineCap = 'round'
+          ctx.beginPath()
+          ctx.moveTo(pivotX, pivotY)
+          ctx.lineTo(tipX, tipY)
+          ctx.stroke()
+          ctx.fillStyle = fallen ? 'rgba(172, 163, 147, 0.7)' : 'rgba(196, 136, 77, 0.95)'
+          ctx.beginPath()
+          ctx.arc(tipX, tipY, Math.max(4, 0.05 * ppm), 0, TAU)
+          ctx.fill()
+          ctx.fillStyle = '#0a0a0d'
+          ctx.beginPath()
+          ctx.arc(pivotX, pivotY, Math.max(1.5, 0.012 * ppm), 0, TAU)
+          ctx.fill()
+
+          for (const fx of effects) {
+            const a = fx.t / 0.5
+            const mx = pivotX + 0.5 * POLE_LEN * ppm * Math.sin(s.th)
+            const my = pivotY - 0.5 * POLE_LEN * ppm * Math.cos(s.th)
+            const gap = (0.12 + (1 - a) * 0.12) * ppm
+            const size = Math.max(5, 0.07 * ppm)
+            const x = mx - fx.side * gap
+            ctx.strokeStyle = `rgba(196, 136, 77, ${0.9 * a})`
+            ctx.lineWidth = 2
+            ctx.beginPath()
+            ctx.moveTo(x - fx.side * size * 0.6, my - size)
+            ctx.lineTo(x, my)
+            ctx.lineTo(x - fx.side * size * 0.6, my + size)
+            ctx.stroke()
+          }
+
+          if (fallen) label('FALLEN · RESTARTING', centreX, railY + 14, 'rgba(172, 163, 147, 0.6)', 'center')
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, W, H)
+          drawScene()
+          drawChart()
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+          if (!e.isPrimary) return
+          e.preventDefault()
+          idle = 0
+          const rect = canvas.getBoundingClientRect()
+          const x = e.clientX - rect.left
+          const cartX = centreX + s.x * ppm
+          push(x < cartX ? 1 : -1, 1.2)
+        })
+
+        let raf = 0
+        let last = 0
+        function frame(now) {
+          raf = requestAnimationFrame(frame)
+          const dt = last ? Math.min(0.1, (now - last) / 1000) : 0
+          last = now
+          update(dt)
+          draw()
+        }
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            cancelAnimationFrame(raf)
+            raf = 0
+            last = 0
+          } else if (!raf) {
+            raf = requestAnimationFrame(frame)
+          }
+        })
+
+        window.addEventListener('resize', resize)
+        resize()
+        raf = requestAnimationFrame(frame)
+      })()
+    </script>
+  </body>
+</html>

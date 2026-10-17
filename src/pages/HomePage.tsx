@@ -162,7 +162,7 @@ export function HomePage() {
                   </tbody>
                 </table>
                 <p className="note">
-                  Also running: <a href="/labs">Labs</a>, eight small experiments in code.
+                  Also running: <a href="/labs">Labs</a>, nineteen experiments in code.
                 </p>
               </div>
             </div>

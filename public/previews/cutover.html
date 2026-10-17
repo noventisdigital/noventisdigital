@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Noventis - Switching the database under traffic preview</title>
+    <style>
+      :root {
+        --bg: #0a0a0d;
+        --text: #f1ece3;
+        --muted: #aca393;
+        --copper: #c4884d;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .stage {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        background:
+          radial-gradient(1000px 600px at 50% 50%, rgba(196, 136, 77, 0.05), transparent 70%),
+          var(--bg);
+      }
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        pointer-events: none;
+        padding: 5vh 2rem 0;
+        text-align: center;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.24em;
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin: 0 0 0.5rem;
+      }
+      h1 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 400;
+        font-size: clamp(1.4rem, 3vw, 2.4rem);
+        margin: 0;
+      }
+      .hud {
+        position: absolute;
+        bottom: 1.4rem;
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.4rem 2.2rem;
+        padding: 0 1rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(172, 163, 147, 0.7);
+        pointer-events: none;
+      }
+      .hud strong {
+        color: var(--copper);
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        font-variant-numeric: tabular-nums;
+      }
+      .hud .cap { color: rgba(172, 163, 147, 0.5); }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <canvas id="c"></canvas>
+      <div class="overlay">
+        <p class="eyebrow">Preview · Switching the database under traffic</p>
+        <h1 id="tagline">Nobody notices. That is the point.</h1>
+      </div>
+      <div class="hud" id="hud">
+        <span>Phase <strong id="phase">–</strong></span>
+        <span>Reads to new <strong id="share">0 %</strong></span>
+        <span>Rows <strong id="rows">0 / 0</strong></span>
+        <span>Lost <strong id="lost">0</strong></span>
+        <span class="cap">Dual write · backfill · shift reads · retire</span>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        const canvas = document.getElementById('c')
+        const ctx = canvas.getContext('2d')
+        const stage = canvas.parentElement
+        const tagline = document.getElementById('tagline')
+        const hudEl = document.getElementById('hud')
+        const phaseEl = document.getElementById('phase')
+        const shareEl = document.getElementById('share')
+        const rowsEl = document.getElementById('rows')
+        const lostEl = document.getElementById('lost')
+        const dpr = Math.min(window.devicePixelRatio || 1, 2)
+
+        const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+        const SANS = '-apple-system, system-ui, sans-serif'
+        const BONE = '241, 236, 227'
+        const MUTED = '172, 163, 147'
+        const COPPER = '196, 136, 77'
+
+        const PHASES = ['Reads and writes to old', 'Dual write', 'Backfill', 'Shift reads', 'Retire old']
+        const SHORT = ['Old only', 'Dual write', 'Backfill', 'Shift reads', 'Retire old']
+        const PHASE_MS = 8000
+        const DONE_HOLD_MS = 3500
+        const EMIT_MS = 150
+        const TRAVEL_MS = 700
+        const WRITE_SHARE = 0.35
+        const BACKFILL_MS = 5500
+        const SHIFT_STEPS = [0.1, 0.5, 0.9, 1]
+
+        const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
+        const lerp = (a, b, k) => a + (b - a) * k
+        const ease = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2)
+        const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+
+        let W = 0
+        let H = 0
+        let area = { x: 0, y: 0, w: 0, h: 0 }
+        let L = null
+
+        // simulation
+        let simT = 0
+        let phase = 0
+        let phaseT = 0
+        let done = false
+        let old = { rows: 0, retired: false, flash: 0, flashCol: BONE }
+        let nw = { rows: 0, retired: false, flash: 0, flashCol: BONE }
+        let backfill = { gap: 0, copied: 0, active: false, complete: false }
+        let readShare = 0
+        let shiftStep = -1
+        let emitAcc = 0
+        const reqs = []
+        let emitted = 0
+        let arrived = 0
+        let log = []
+
+        function stamp() {
+          const s = Math.floor(simT / 1000)
+          return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+        }
+
+        function addLog(text) {
+          log.push({ t: stamp(), text, at: performance.now() })
+          if (log.length > 40) log.shift()
+        }
+
+        function restart() {
+          simT = 0
+          phase = 0
+          phaseT = 0
+          done = false
+          old = { rows: 1000 + Math.floor(Math.random() * 400), retired: false, flash: 0, flashCol: BONE }
+          nw = { rows: 0, retired: false, flash: 0, flashCol: BONE }
+          backfill = { gap: 0, copied: 0, active: false, complete: false }
+          readShare = 0
+          shiftStep = -1
+          log = []
+          addLog('reads and writes go to old')
+          updateHud()
+        }
+
+        function enterPhase(p) {
+          phase = p
+          phaseT = 0
+          if (p === 1) addLog('dual write on: every write goes to both')
+          if (p === 2) {
+            backfill = { gap: old.rows - nw.rows, copied: 0, active: true, complete: false }
+            addLog(`backfill: copying ${fmt(backfill.gap)} rows to new`)
+          }
+          if (p === 3) {
+            if (backfill.active) finishBackfill()
+            shiftStep = -1
+          }
+          if (p === 4) {
+            readShare = 1
+            old.retired = true
+            addLog('retire old: nothing goes to old now')
+          }
+        }
+
+        function finishBackfill() {
+          const remaining = backfill.gap - Math.floor(backfill.copied)
+          nw.rows += remaining
+          backfill.copied = backfill.gap
+          backfill.active = false
+          backfill.complete = true
+          addLog(`backfill complete: ${fmt(old.rows)} / ${fmt(nw.rows)}${old.rows === nw.rows ? ', counts match' : ''}`)
+        }
+
+        function updateHud() {
+          phaseEl.textContent = done ? 'Done' : PHASES[phase]
+          shareEl.textContent = `${Math.round(readShare * 100)} %`
+          rowsEl.textContent = `${fmt(old.rows)} / ${fmt(nw.rows)}`
+          lostEl.textContent = emitted - arrived - reqs.length
+        }
+
+        function emit() {
+          const write = Math.random() < WRITE_SHARE
+          let targets
+          if (write) targets = phase === 0 ? ['old'] : phase === 4 ? ['new'] : ['old', 'new']
+          else targets = [Math.random() < readShare ? 'new' : 'old']
+          reqs.push({ write, deliveries: targets.map((to) => ({ to, t: 0, landed: false })), jitter: (Math.random() - 0.5) * 10 })
+          emitted++
+        }
+
+        function tick(dt) {
+          simT += dt
+          if (!done) {
+            phaseT += dt
+            if (phase === 2 && backfill.active) {
+              const before = Math.floor(backfill.copied)
+              backfill.copied = Math.min(backfill.gap, backfill.copied + (backfill.gap * dt) / BACKFILL_MS)
+              nw.rows += Math.floor(backfill.copied) - before
+              if (backfill.copied >= backfill.gap) finishBackfill()
+            }
+            if (phase === 3) {
+              const step = Math.min(SHIFT_STEPS.length - 1, Math.floor(phaseT / (PHASE_MS / SHIFT_STEPS.length)))
+              if (step !== shiftStep) {
+                shiftStep = step
+                readShare = SHIFT_STEPS[step]
+                addLog(`reads to new: ${Math.round(readShare * 100)}%`)
+              }
+            }
+            if (phaseT >= PHASE_MS) {
+              if (phase < PHASES.length - 1) enterPhase(phase + 1)
+              else {
+                done = true
+                phaseT = 0
+                const lost = emitted - arrived - reqs.length
+                addLog(lost === 0 ? 'done, no requests lost' : `done, ${lost} requests lost`)
+              }
+            }
+          } else {
+            phaseT += dt
+            if (phaseT >= DONE_HOLD_MS) restart()
+          }
+
+          emitAcc += dt
+          while (emitAcc >= EMIT_MS) {
+            emitAcc -= EMIT_MS
+            emit()
+          }
+
+          for (let i = reqs.length - 1; i >= 0; i--) {
+            const r = reqs[i]
+            let all = true
+            for (const d of r.deliveries) {
+              if (d.landed) continue
+              d.t += dt
+              if (d.t >= TRAVEL_MS) {
+                d.landed = true
+                const store = d.to === 'old' ? old : nw
+                if (r.write) store.rows++
+                store.flash = 1
+                store.flashCol = r.write ? COPPER : BONE
+              } else all = false
+            }
+            if (all) {
+              reqs.splice(i, 1)
+              arrived++
+            }
+          }
+          old.flash = Math.max(0, old.flash - dt / 320)
+          nw.flash = Math.max(0, nw.flash - dt / 320)
+          updateHud()
+        }
+
+        // ---- layout -------------------------------------------------------------
+
+        function measureArea() {
+          const sr = stage.getBoundingClientRect()
+          const tr = tagline.getBoundingClientRect()
+          const hr = hudEl.getBoundingClientRect()
+          const top = tr.bottom - sr.top + 14
+          const bottom = hr.top - sr.top - 10
+          const pad = W < 520 ? 12 : 24
+          area = { x: pad, y: top, w: W - pad * 2, h: Math.max(140, bottom - top) }
+        }
+
+        function layout() {
+          const a = area
+          const gap = 18
+          const narrow = a.w < 560
+          let sim
+          let logBox
+          if (!narrow) {
+            const logW = clamp(a.w * 0.34, 190, 330)
+            sim = { x: a.x, y: a.y, w: a.w - logW - gap, h: a.h }
+            logBox = { x: a.x + sim.w + gap, y: a.y, w: logW, h: a.h }
+          } else {
+            const logH = Math.max(40, a.h * 0.38 - gap)
+            const simH = Math.max(100, a.h - logH - gap)
+            sim = { x: a.x, y: a.y, w: a.w, h: simH }
+            logBox = { x: a.x, y: a.y + simH + gap, w: a.w, h: logH }
+          }
+          const cx = sim.x + sim.w / 2
+          const stripH = sim.w >= 440 && sim.h >= 220 ? 26 : 0
+          const source = { x: cx - 44, y: sim.y + 4, w: 88, h: 22 }
+          const boxGap = clamp(sim.w * 0.08, 18, 48)
+          const boxW = clamp((sim.w - boxGap) / 2, 100, 230)
+          const topY = source.y + source.h + clamp(sim.h * 0.26, 30, 120)
+          const boxH = clamp(sim.y + sim.h - stripH - 26 - topY, 40, 170)
+          L = {
+            sim, logBox, source, stripH, cx,
+            old: { x: cx - boxGap / 2 - boxW, y: topY, w: boxW, h: boxH },
+            nw: { x: cx + boxGap / 2, y: topY, w: boxW, h: boxH },
+            bar: { x: cx + boxGap / 2, y: topY + boxH + 10, w: boxW, h: 5 },
+            strip: { x: sim.x, y: sim.y + sim.h - stripH, w: sim.w, h: stripH },
+          }
+        }
+
+        function resize() {
+          const r = stage.getBoundingClientRect()
+          W = Math.max(1, r.width)
+          H = Math.max(1, r.height)
+          canvas.width = Math.floor(W * dpr)
+          canvas.height = Math.floor(H * dpr)
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+          measureArea()
+          layout()
+        }
+
+        // The HUD wraps differently as its values change, which moves the content area.
+        let lastMeasure = 0
+        function checkArea(now) {
+          if (now - lastMeasure < 500) return
+          lastMeasure = now
+          const { y, w, h } = area
+          measureArea()
+          if (area.y !== y || area.w !== w || area.h !== h) layout()
+        }
+
+        // ---- drawing ------------------------------------------------------------
+
+        function rr(x, y, w, h, r) {
+          r = Math.min(r, w / 2, h / 2)
+          ctx.beginPath()
+          ctx.moveTo(x + r, y)
+          ctx.arcTo(x + w, y, x + w, y + h, r)
+          ctx.arcTo(x + w, y + h, x, y + h, r)
+          ctx.arcTo(x, y + h, x, y, r)
+          ctx.arcTo(x, y, x + w, y, r)
+          ctx.closePath()
+        }
+
+        function tracked(text, x, y, spacing) {
+          for (const ch of text) {
+            ctx.fillText(ch, x, y)
+            x += ctx.measureText(ch).width + spacing
+          }
+        }
+
+        function trackedWidth(text, spacing) {
+          let w = 0
+          for (const ch of text) w += ctx.measureText(ch).width + spacing
+          return w - spacing
+        }
+
+        function panel(r) {
+          rr(r.x, r.y, r.w, r.h, 6)
+          ctx.fillStyle = '#0c0c10'
+          ctx.fill()
+          ctx.strokeStyle = 'rgba(255, 245, 232, 0.08)'
+          ctx.lineWidth = 1
+          ctx.stroke()
+        }
+
+        function fitText(text, maxW) {
+          if (ctx.measureText(text).width <= maxW) return text
+          let lo = 0
+          let hi = text.length
+          while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1
+            if (ctx.measureText(text.slice(0, mid) + '…').width <= maxW) lo = mid
+            else hi = mid - 1
+          }
+          return text.slice(0, lo) + '…'
+        }
+
+        function drawSource() {
+          const s = L.source
+          rr(s.x, s.y, s.w, s.h, 11)
+          ctx.fillStyle = `rgba(${BONE}, 0.06)`
+          ctx.fill()
+          ctx.strokeStyle = `rgba(${BONE}, 0.25)`
+          ctx.lineWidth = 1
+          ctx.stroke()
+          ctx.font = `500 9.5px ${SANS}`
+          ctx.fillStyle = `rgba(${BONE}, 0.85)`
+          ctx.textBaseline = 'middle'
+          ctx.textAlign = 'left'
+          const tw = trackedWidth('TRAFFIC', 1.8)
+          tracked('TRAFFIC', s.x + s.w / 2 - tw / 2, s.y + s.h / 2 + 1, 1.8)
+        }
+
+        function drawStore(box, store, title) {
+          const dim = store.retired ? 0.35 : 1
+          panel(box)
+          if (store.flash > 0) {
+            ctx.strokeStyle = `rgba(${store.flashCol}, ${0.35 * store.flash * dim})`
+            ctx.lineWidth = 1.5
+            rr(box.x, box.y, box.w, box.h, 6)
+            ctx.stroke()
+          }
+          ctx.font = `500 9.5px ${SANS}`
+          ctx.fillStyle = `rgba(${MUTED}, ${0.8 * dim})`
+          ctx.textBaseline = 'middle'
+          ctx.textAlign = 'left'
+          tracked(title.toUpperCase(), box.x + 10, box.y + 13, 1.8)
+          if (store.retired) {
+            ctx.fillStyle = `rgba(${MUTED}, 0.45)`
+            const tw = trackedWidth('RETIRED', 1.8)
+            tracked('RETIRED', box.x + box.w - 10 - tw, box.y + 13, 1.8)
+          }
+          const compact = box.h < 70
+          const numSize = compact ? 16 : clamp(box.w * 0.17, 18, 36)
+          ctx.font = `300 ${numSize}px ${SANS}`
+          ctx.textAlign = 'center'
+          ctx.fillStyle = store.retired ? `rgba(${MUTED}, 0.45)` : `rgba(${BONE}, 0.95)`
+          ctx.fillText(fmt(store.rows), box.x + box.w / 2, compact ? box.y + box.h / 2 + 9 : box.y + box.h / 2 + 4)
+          if (!compact) {
+            ctx.font = `500 9px ${SANS}`
+            ctx.fillStyle = `rgba(${MUTED}, ${0.6 * dim})`
+            const tw = trackedWidth('ROWS', 1.8)
+            tracked('ROWS', box.x + box.w / 2 - tw / 2, box.y + box.h / 2 + numSize * 0.6 + 8, 1.8)
+          }
+          ctx.textAlign = 'left'
+        }
+
+        function drawBackfillBar() {
+          const b = L.bar
+          const k = backfill.gap > 0 ? clamp(backfill.copied / backfill.gap, 0, 1) : backfill.complete ? 1 : 0
+          rr(b.x, b.y, b.w, b.h, 2.5)
+          ctx.fillStyle = `rgba(${BONE}, 0.08)`
+          ctx.fill()
+          if (k > 0) {
+            rr(b.x, b.y, Math.max(b.h, b.w * k), b.h, 2.5)
+            ctx.fillStyle = `rgba(${COPPER}, ${backfill.active ? 0.95 : 0.55})`
+            ctx.fill()
+          }
+          if ((backfill.active || backfill.complete) && L.nw.h >= 70) {
+            ctx.font = `500 9px ${SANS}`
+            ctx.textBaseline = 'middle'
+            ctx.textAlign = 'left'
+            ctx.fillStyle = `rgba(${MUTED}, 0.7)`
+            tracked('BACKFILL', b.x, b.y + b.h + 10, 1.6)
+            ctx.textAlign = 'right'
+            ctx.fillStyle = backfill.active ? `rgb(${COPPER})` : `rgba(${MUTED}, 0.7)`
+            ctx.fillText(`${Math.round(k * 100)}%`, b.x + b.w, b.y + b.h + 10)
+            ctx.textAlign = 'left'
+          }
+        }
+
+        function dotPath(to, k, jitter) {
+          const box = to === 'old' ? L.old : L.nw
+          const sx = L.cx + jitter
+          const sy = L.source.y + L.source.h
+          const ex = box.x + box.w / 2 + jitter * 2
+          const ey = box.y
+          const cx = lerp(sx, ex, 0.12)
+          const cy = ey - clamp((ey - sy) * 0.45, 16, 60)
+          const u = 1 - k
+          return {
+            x: u * u * sx + 2 * u * k * cx + k * k * ex,
+            y: u * u * sy + 2 * u * k * cy + k * k * ey,
+          }
+        }
+
+        function drawDots() {
+          for (const r of reqs) {
+            for (const d of r.deliveries) {
+              if (d.landed) continue
+              const k = ease(clamp(d.t / TRAVEL_MS, 0, 1))
+              const p = dotPath(d.to, k, r.jitter)
+              const tail = dotPath(d.to, Math.max(0, k - 0.05), r.jitter)
+              const col = r.write ? COPPER : BONE
+              ctx.strokeStyle = `rgba(${col}, 0.25)`
+              ctx.lineWidth = 2
+              ctx.beginPath()
+              ctx.moveTo(tail.x, tail.y)
+              ctx.lineTo(p.x, p.y)
+              ctx.stroke()
+              ctx.fillStyle = `rgba(${col}, ${r.write ? 0.95 : 0.8})`
+              ctx.beginPath()
+              ctx.arc(p.x, p.y, r.write ? 3 : 2.5, 0, Math.PI * 2)
+              ctx.fill()
+            }
+          }
+        }
+
+        function drawStrip() {
+          if (!L.stripH) return
+          const s = L.strip
+          ctx.font = `500 9px ${SANS}`
+          ctx.textBaseline = 'middle'
+          ctx.textAlign = 'left'
+          let names = PHASES
+          let widths = names.map((p) => trackedWidth(p.toUpperCase(), 1.4))
+          let total = widths.reduce((a, b) => a + b, 0)
+          if (total + 10 * (names.length - 1) > s.w) {
+            names = SHORT
+            widths = names.map((p) => trackedWidth(p.toUpperCase(), 1.4))
+            total = widths.reduce((a, b) => a + b, 0)
+            if (total + 10 * (names.length - 1) > s.w) return
+          }
+          const gapW = Math.max(10, (s.w - total) / (names.length - 1))
+          let x = s.x
+          const y = s.y + s.h / 2 + 2
+          names.forEach((p, i) => {
+            const cur = !done && i === phase
+            const past = done || i < phase
+            ctx.fillStyle = cur ? `rgb(${COPPER})` : past ? `rgba(${BONE}, 0.6)` : `rgba(${MUTED}, 0.4)`
+            tracked(p.toUpperCase(), x, y, 1.4)
+            if (cur) {
+              const k = clamp(phaseT / PHASE_MS, 0, 1)
+              ctx.fillStyle = `rgba(${COPPER}, 0.9)`
+              ctx.fillRect(x, y + 9, widths[i] * k, 1.5)
+            }
+            x += widths[i] + gapW
+          })
+        }
+
+        function drawLog(now) {
+          const b = L.logBox
+          panel(b)
+          ctx.font = `500 9.5px ${SANS}`
+          ctx.fillStyle = `rgba(${MUTED}, 0.75)`
+          ctx.textBaseline = 'middle'
+          ctx.textAlign = 'left'
+          tracked('LOG', b.x + 10, b.y + 13, 1.8)
+          const inner = { x: b.x + 10, y: b.y + 28, w: b.w - 20, h: b.h - 36 }
+          const fs = inner.w < 220 ? 10 : 11
+          const lh = fs + 5
+          ctx.font = `${fs}px ${MONO}`
+          const stampW = ctx.measureText('00:00').width + 10
+          const textW = inner.w - stampW
+          // wrap each entry, then keep the last lines that fit
+          const out = []
+          for (const e of log) {
+            const words = e.text.split(' ')
+            let cur = ''
+            const parts = []
+            for (const w of words) {
+              const t = cur ? cur + ' ' + w : w
+              if (ctx.measureText(t).width > textW && cur) {
+                parts.push(cur)
+                cur = w
+              } else cur = t
+            }
+            if (cur) parts.push(cur)
+            parts.forEach((p, i) => out.push({ t: i === 0 ? e.t : '', text: p, at: e.at }))
+          }
+          const maxLines = Math.max(1, Math.floor(inner.h / lh))
+          const lines = out.slice(-maxLines)
+          lines.forEach((ln, i) => {
+            const y = inner.y + i * lh + lh / 2
+            const k = clamp((now - ln.at) / 1600, 0, 1)
+            ctx.fillStyle = `rgba(${MUTED}, 0.55)`
+            ctx.fillText(ln.t, inner.x, y)
+            ctx.fillStyle = `rgb(${Math.round(lerp(196, 241, k))}, ${Math.round(lerp(136, 236, k))}, ${Math.round(lerp(77, 227, k))})`
+            ctx.globalAlpha = lerp(1, 0.78, k)
+            ctx.fillText(fitText(ln.text, textW), inner.x + stampW, y)
+            ctx.globalAlpha = 1
+          })
+        }
+
+        function draw(now) {
+          ctx.clearRect(0, 0, W, H)
+          drawSource()
+          drawStore(L.old, old, 'Old')
+          drawStore(L.nw, nw, 'New')
+          drawBackfillBar()
+          drawDots()
+          drawStrip()
+          drawLog(now)
+        }
+
+        let last = 0
+        let raf = 0
+        function frame(now) {
+          raf = 0
+          if (document.hidden) return
+          const dt = Math.min(64, Math.max(0, now - last))
+          last = now
+          checkArea(now)
+          tick(dt)
+          draw(now)
+          raf = requestAnimationFrame(frame)
+        }
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden && !raf) {
+            last = performance.now()
+            raf = requestAnimationFrame(frame)
+          }
+        })
+        window.addEventListener('resize', resize)
+
+        resize()
+        restart()
+        last = performance.now()
+        raf = requestAnimationFrame(frame)
+      })()
+    </script>
+  </body>
+</html>
