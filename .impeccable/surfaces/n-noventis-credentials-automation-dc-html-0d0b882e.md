@@ -32,3 +32,5 @@ FIRST VIEWPORT: The cover at 1920 by 1080: the 96px header with the copper-dot N
 FORM: the same maker's catalogue as the homepage, applied as a second surface inside the chosen world; no new roll (the world is settled and the slide structure is precisely specified). seed: none (unavailable)
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
+
+Rebuilt 17 October 2026 (John: "yes do it"): the deck now follows the site. File renamed to `docs/design/Noventis Credentials.dc.html`. Eleven slides: cover with the session plate and the three terminal lines, the routes, Build, Adopt, Run, built securely, running today (the demo portal's milestones and approval controls), sectors, Noventis is me (photograph, the site's paragraphs, the four rules), a bit more about me, send a note (copper button). The automation framing, the exploded Item 01, the invented story and the two figures are gone; John's photograph replaces both placeholder portraits.

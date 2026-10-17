@@ -1,6 +1,6 @@
 # Placeholder content (invented, replace before launch)
 
-**16 October 2026, evening:** the homepage was rebuilt on three routes and one handler and no longer carries the story, the quote builder drawing or the two numbers. **17 October 2026:** John supplied his photograph; the placeholder SVG is deleted and the site carries no placeholder at all. The story and figures stay in the credentials deck (cover and slide 10) until the deck is rebuilt to follow the site.
+**16 October 2026, evening:** the homepage was rebuilt on three routes and one handler and no longer carries the story, the quote builder drawing or the two numbers. **17 October 2026:** John supplied his photograph; the placeholder SVG is deleted and the site carries no placeholder at all. The credentials deck was rebuilt on 17 October 2026 on the three routes; the story, the figures and the exploded drawing are gone from it. This file remains as the record of what was invented.
 
 Created 15 October 2026 at John's request so design work can proceed. Nothing in this file is true. Every use of it in a surface must carry the word PLACEHOLDER in the source so it cannot ship unnoticed.
 
@@ -33,6 +33,6 @@ Both numbers were requested by John on 15 October 2026 ("just make those up as p
 
 ## Replacement checklist
 
-- [x] Real photo supplied (17 October 2026) and `john-byrne-placeholder.svg` removed; the deck's three portrait references still need the real file
-- [ ] Real story supplied, checked for anonymity, Item 01's parts redrawn from the real build, and the word PLACEHOLDER removed from every surface
-- [ ] Real numbers supplied, sourced, and the word PLACEHOLDER removed
+- [x] Real photo supplied (17 October 2026) and `john-byrne-placeholder.svg` removed from the site and the deck
+- [x] Story retired rather than replaced (16 and 17 October 2026): no surface carries it
+- [x] Numbers retired rather than replaced: no surface carries them
