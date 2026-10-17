@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Noventis - Exploded system preview</title>
+    <style>
+      :root {
+        --bg: #0a0a0d;
+        --text: #f1ece3;
+        --muted: #aca393;
+        --copper: #c4884d;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .stage {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        background:
+          radial-gradient(1000px 600px at 50% 50%, rgba(196, 136, 77, 0.05), transparent 70%),
+          var(--bg);
+      }
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+        cursor: grab;
+      }
+      canvas.dragging { cursor: grabbing; }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        pointer-events: none;
+        padding: 6vh 2rem 0;
+        text-align: center;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.24em;
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin: 0 0 0.6rem;
+      }
+      h1 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 400;
+        font-size: clamp(1.5rem, 3vw, 2.4rem);
+        margin: 0 0 0.6rem;
+      }
+      .bottom {
+        position: absolute;
+        bottom: 1.1rem;
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.7rem;
+        pointer-events: none;
+      }
+      .hud {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0 1rem;
+        text-align: center;
+      }
+      .hud strong {
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--copper);
+        font-weight: 500;
+      }
+      .hud span {
+        font-size: 0.84rem;
+        color: var(--muted);
+        max-width: 60ch;
+        line-height: 1.4;
+      }
+      .legend {
+        text-align: center;
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(172, 163, 147, 0.55);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <canvas id="system"></canvas>
+      <div class="overlay">
+        <p class="eyebrow">Preview · Exploded system</p>
+        <h1>The client portal, taken apart.</h1>
+      </div>
+      <div class="bottom">
+        <div class="hud">
+          <strong id="part">Browser</strong>
+          <span id="desc">React single-page app, static hosting</span>
+        </div>
+        <div class="legend">Browser · edge functions · database · storage · email</div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as THREE from '/vendor/three.module.min.js'
+
+      const canvas = document.getElementById('system')
+      const stage = canvas.parentElement
+      const partEl = document.getElementById('part')
+      const descEl = document.getElementById('desc')
+
+      const BG = 0x0a0a0d
+      const BONE = 0xf1ece3
+      const MUTED = 0xaca393
+      const COPPER = 0xc4884d
+
+      const PARTS = [
+        ['Browser', 'React single-page app, static hosting'],
+        ['Edge functions', 'Privileged actions run here, never in the browser'],
+        ['Database', 'Postgres with row-level security, each client sees only their own rows'],
+        ['Storage', 'Files, access checked per client'],
+        ['Email', 'Sent when a pack or invoice is ready'],
+      ]
+
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false })
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+      renderer.setClearColor(BG)
+
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100)
+
+      scene.add(new THREE.HemisphereLight(BONE, 0x1a140f, 1.1))
+      const key = new THREE.DirectionalLight(0xfff6ea, 2.2)
+      key.position.set(4, 8, 6)
+      scene.add(key)
+
+      const W = 2.8
+      const D = 1.8
+      const T = 0.14
+      const STEP = 1.15
+      const LIFT = 0.32
+
+      const restColor = new THREE.Color(0x34322d)
+      const copper = new THREE.Color(COPPER)
+      const copperGlow = new THREE.Color(COPPER).multiplyScalar(0.3)
+      const edgeRest = new THREE.Color(MUTED)
+      const black = new THREE.Color(0x000000)
+
+      function labelTexture(text) {
+        const c = document.createElement('canvas')
+        c.width = 1024
+        c.height = 384
+        const ctx = c.getContext('2d')
+        ctx.fillStyle = '#f1ece3'
+        ctx.font = '400 150px Georgia, "Times New Roman", serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(text, 512, 200)
+        const tex = new THREE.CanvasTexture(c)
+        tex.colorSpace = THREE.SRGBColorSpace
+        return tex
+      }
+
+      const slabGeo = new THREE.BoxGeometry(W, T, D)
+      const edgeGeo = new THREE.EdgesGeometry(slabGeo)
+      const labelGeo = new THREE.PlaneGeometry(W * 0.9, W * 0.9 * 0.375)
+      const slabs = []
+      const parts = []
+
+      PARTS.forEach(([name, desc], i) => {
+        const group = new THREE.Group()
+        const restY = (2 - i) * STEP
+        group.position.y = restY
+
+        const mat = new THREE.MeshStandardMaterial({
+          color: restColor.clone(),
+          roughness: 0.55,
+          metalness: 0.1,
+          emissive: 0x000000,
+        })
+        const slab = new THREE.Mesh(slabGeo, mat)
+        slab.userData.index = i
+        group.add(slab)
+        slabs.push(slab)
+
+        const edgeMat = new THREE.LineBasicMaterial({ color: edgeRest.clone(), transparent: true, opacity: 0.45 })
+        group.add(new THREE.LineSegments(edgeGeo, edgeMat))
+
+        const label = new THREE.Mesh(
+          labelGeo,
+          new THREE.MeshBasicMaterial({ map: labelTexture(name), transparent: true, depthWrite: false })
+        )
+        label.rotation.x = -Math.PI / 2
+        label.position.y = T / 2 + 0.004
+        group.add(label)
+
+        scene.add(group)
+        parts.push({ name, desc, group, mat, edgeMat, restY, lift: 0 })
+      })
+
+      // Leader lines: one at the axis and one at each corner between consecutive parts.
+      const SEGMENTS = (PARTS.length - 1) * 5
+      const linePos = new Float32Array(SEGMENTS * 2 * 3)
+      const lineGeo = new THREE.BufferGeometry()
+      lineGeo.setAttribute('position', new THREE.BufferAttribute(linePos, 3))
+      const lines = new THREE.LineSegments(
+        lineGeo,
+        new THREE.LineBasicMaterial({ color: BONE, transparent: true, opacity: 0.55 })
+      )
+      scene.add(lines)
+
+      const CORNERS = [
+        [0, 0],
+        [W / 2 - 0.05, D / 2 - 0.05],
+        [-W / 2 + 0.05, D / 2 - 0.05],
+        [W / 2 - 0.05, -D / 2 + 0.05],
+        [-W / 2 + 0.05, -D / 2 + 0.05],
+      ]
+
+      function updateLines() {
+        let k = 0
+        for (let i = 0; i < parts.length - 1; i++) {
+          const top = parts[i].group.position.y - T / 2
+          const bottom = parts[i + 1].group.position.y + T / 2
+          for (const [cx, cz] of CORNERS) {
+            linePos[k++] = cx
+            linePos[k++] = top
+            linePos[k++] = cz
+            linePos[k++] = cx
+            linePos[k++] = bottom
+            linePos[k++] = cz
+          }
+        }
+        lineGeo.attributes.position.needsUpdate = true
+      }
+
+      // Selection: a timer advances it every four seconds unless the pointer holds a part.
+      let active = -1
+      let timer = 0
+      let held = false
+
+      function select(i) {
+        if (i === active) return
+        active = i
+        timer = 0
+        partEl.textContent = parts[i].name
+        descEl.textContent = parts[i].desc
+      }
+      select(0)
+
+      // Camera: spherical orbit facing the long side, swaying slowly about the front.
+      const h1El = document.querySelector('h1')
+      const bottomEl = document.querySelector('.bottom')
+      const target = new THREE.Vector3(0, 0, 0)
+      let theta = 0
+      let phi = 0.8
+      let radius = 9
+      let swayT = 0
+
+      const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
+
+      function placeCamera() {
+        const s = Math.sin(phi) * radius
+        camera.position.set(target.x + s * Math.sin(theta), target.y + Math.cos(phi) * radius, target.z + s * Math.cos(theta))
+        camera.lookAt(target)
+        camera.updateMatrixWorld()
+      }
+
+      // Fit: project the corners of the top and bottom slabs and move radius and target
+      // towards values that put the stack inside the band between the overlay and the HUD.
+      const corners = []
+      for (let i = 0; i < 16; i++) corners.push(new THREE.Vector3())
+      const probe = new THREE.Vector3()
+
+      function fitStep(k) {
+        const H = stage.clientHeight
+        if (!H) return
+        const top = parts[0].group.position.y
+        const bottom = parts[parts.length - 1].group.position.y
+        let n = 0
+        for (const y of [top + T / 2, bottom - T / 2]) {
+          for (const sx of [-1, 1]) {
+            for (const sz of [-1, 1]) {
+              corners[n++].set((sx * W) / 2, y, (sz * D) / 2)
+              corners[n++].set((sx * W) / 2, y - (y > 0 ? T : -T), (sz * D) / 2)
+            }
+          }
+        }
+        let minY = Infinity
+        let maxY = -Infinity
+        let maxX = 0
+        for (const c of corners) {
+          probe.copy(c).project(camera)
+          minY = Math.min(minY, probe.y)
+          maxY = Math.max(maxY, probe.y)
+          maxX = Math.max(maxX, Math.abs(probe.x))
+        }
+        const bandTop = Math.max(0.18 * H, h1El.getBoundingClientRect().bottom + 10)
+        const bandBottom = Math.min(0.82 * H, bottomEl.getBoundingClientRect().top - 10)
+        const ndcTop = 1 - (2 * bandTop) / H
+        const ndcBottom = 1 - (2 * bandBottom) / H
+        const span = Math.max(0.3, ndcTop - ndcBottom)
+        const scale = Math.max((maxY - minY) / span, maxX / 0.88)
+        radius += (clamp(radius * scale, 3, 60) - radius) * k
+        const cy = (minY + maxY) / 2
+        const wantC = (ndcTop + ndcBottom) / 2
+        const vFov = (camera.fov * Math.PI) / 180
+        target.y += ((cy - wantC) * radius * Math.tan(vFov / 2) * k) / Math.sin(phi)
+        placeCamera()
+      }
+
+      function resize() {
+        const w = stage.clientWidth
+        const h = stage.clientHeight
+        renderer.setSize(w, h, false)
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        placeCamera()
+        for (let i = 0; i < 12; i++) fitStep(1)
+      }
+      window.addEventListener('resize', resize)
+      resize()
+
+      // Pointer: drag orbits, hover (or tap) selects a part.
+      const raycaster = new THREE.Raycaster()
+      const ndc = new THREE.Vector2()
+      let dragging = false
+      let pointerIn = false
+      let lastX = 0
+      let lastY = 0
+
+      function setNdc(e) {
+        const r = canvas.getBoundingClientRect()
+        ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
+      }
+
+      function pick(sticky) {
+        raycaster.setFromCamera(ndc, camera)
+        const hit = raycaster.intersectObjects(slabs, false)[0]
+        if (hit) select(hit.object.userData.index)
+        if (!sticky) held = !!hit
+      }
+
+      canvas.addEventListener('pointerdown', (e) => {
+        dragging = true
+        lastX = e.clientX
+        lastY = e.clientY
+        canvas.setPointerCapture(e.pointerId)
+        canvas.classList.add('dragging')
+        setNdc(e)
+        if (e.pointerType !== 'mouse') pick(true)
+      })
+      canvas.addEventListener('pointermove', (e) => {
+        setNdc(e)
+        if (e.pointerType === 'mouse') pointerIn = true
+        if (!dragging) return
+        const dx = e.clientX - lastX
+        const dy = e.clientY - lastY
+        lastX = e.clientX
+        lastY = e.clientY
+        theta -= dx * 0.006
+        phi = clamp(phi - dy * 0.005, 0.35, 1.5)
+      })
+      const release = () => {
+        dragging = false
+        canvas.classList.remove('dragging')
+      }
+      canvas.addEventListener('pointerup', release)
+      canvas.addEventListener('pointercancel', release)
+      canvas.addEventListener('pointerleave', (e) => {
+        if (e.pointerType !== 'mouse') return
+        pointerIn = false
+        held = false
+      })
+
+      let running = false
+      let last = 0
+
+      function frame(now) {
+        if (document.hidden) {
+          running = false
+          return
+        }
+        const dt = Math.min((now - last) / 1000, 0.1)
+        last = now
+
+        if (pointerIn && !dragging) pick(false)
+        if (!held) {
+          timer += dt
+          if (timer >= 4) select((active + 1) % parts.length)
+        }
+
+        const ease = Math.min(1, dt * 5)
+        parts.forEach((p, i) => {
+          const on = i === active
+          p.lift += ((on ? LIFT : 0) - p.lift) * ease
+          p.group.position.y = p.restY + p.lift
+          p.mat.color.lerp(on ? copper : restColor, ease)
+          p.mat.emissive.lerp(on ? copperGlow : black, ease)
+          p.edgeMat.color.lerp(on ? copper : edgeRest, ease)
+        })
+        updateLines()
+
+        if (!dragging && !held) {
+          swayT += dt
+          const want = Math.sin((swayT * Math.PI * 2) / 16) * 0.55
+          const d = Math.atan2(Math.sin(want - theta), Math.cos(want - theta))
+          theta += d * Math.min(1, dt * 1.5)
+        }
+        placeCamera()
+        fitStep(Math.min(1, dt * 3))
+        renderer.render(scene, camera)
+        requestAnimationFrame(frame)
+      }
+
+      function start() {
+        if (running) return
+        running = true
+        last = performance.now()
+        requestAnimationFrame(frame)
+      }
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) start()
+      })
+      start()
+    </script>
+  </body>
+</html>

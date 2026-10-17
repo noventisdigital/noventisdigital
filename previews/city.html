@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Noventis - Code city preview</title>
+    <style>
+      :root {
+        --bg: #0a0a0d;
+        --text: #f1ece3;
+        --muted: #aca393;
+        --copper: #c4884d;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .stage {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        background:
+          radial-gradient(1000px 600px at 50% 50%, rgba(196, 136, 77, 0.05), transparent 70%),
+          var(--bg);
+      }
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+        cursor: grab;
+      }
+      canvas.dragging { cursor: grabbing; }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        pointer-events: none;
+        padding: 6vh 2rem 0;
+        text-align: center;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.24em;
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin: 0 0 0.6rem;
+      }
+      h1 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 400;
+        font-size: clamp(1.5rem, 3vw, 2.4rem);
+        margin: 0 0 0.6rem;
+      }
+      .bottom {
+        position: absolute;
+        bottom: 1.1rem;
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.7rem;
+        pointer-events: none;
+      }
+      .pick {
+        min-height: 1.3em;
+        padding: 0 1rem;
+        text-align: center;
+        font-size: 0.8rem;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+        word-break: break-all;
+      }
+      .pick strong {
+        color: var(--copper);
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .hud {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.4rem 2.2rem;
+        padding: 0 1rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(172, 163, 147, 0.7);
+        font-variant-numeric: tabular-nums;
+      }
+      .hud strong {
+        color: var(--copper);
+        font-weight: 500;
+        letter-spacing: 0.1em;
+      }
+      .hud strong.path {
+        text-transform: none;
+        letter-spacing: 0.04em;
+        word-break: break-all;
+      }
+      .legend {
+        text-align: center;
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(172, 163, 147, 0.55);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <canvas id="city"></canvas>
+      <div class="overlay">
+        <p class="eyebrow">Preview · Code city</p>
+        <h1>This site, as a city.</h1>
+      </div>
+      <div class="bottom">
+        <div class="pick" id="pick"></div>
+        <div class="hud">
+          <span>Files <strong id="files">0</strong></span>
+          <span>Districts <strong id="districts">0</strong></span>
+          <span>Largest <strong id="largest" class="path">…</strong></span>
+        </div>
+        <div class="legend">Built from the repository at deploy time</div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as THREE from '/vendor/three.module.min.js'
+
+      const canvas = document.getElementById('city')
+      const stage = canvas.parentElement
+      const filesEl = document.getElementById('files')
+      const districtsEl = document.getElementById('districts')
+      const largestEl = document.getElementById('largest')
+      const pickEl = document.getElementById('pick')
+
+      const BG = 0x0a0a0d
+      const BONE = 0xf1ece3
+      const MUTED = 0xaca393
+      const COPPER = 0xc4884d
+
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false })
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+      renderer.setClearColor(BG)
+
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 600)
+
+      scene.add(new THREE.HemisphereLight(BONE, 0x1a140f, 1.1))
+      const sun = new THREE.DirectionalLight(0xfff6ea, 2.2)
+      sun.position.set(14, 22, 10)
+      scene.add(sun)
+
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(800, 800),
+        new THREE.MeshStandardMaterial({ color: 0x0e0e12, roughness: 1, metalness: 0 })
+      )
+      ground.rotation.x = -Math.PI / 2
+      ground.position.y = -0.02
+      scene.add(ground)
+
+      const city = new THREE.Group()
+      scene.add(city)
+
+      // Scale an sRGB hex colour before Three converts it to linear.
+      function shade(hex, k) {
+        const r = Math.round(((hex >> 16) & 255) * k)
+        const g = Math.round(((hex >> 8) & 255) * k)
+        const b = Math.round((hex & 255) * k)
+        return new THREE.Color((r << 16) | (g << 8) | b)
+      }
+
+      const TINTS = {
+        ts: shade(BONE, 0.7),
+        tsx: shade(BONE, 0.7),
+        css: shade(COPPER, 1),
+        html: shade(MUTED, 1),
+        json: shade(MUTED, 1),
+        sql: shade(MUTED, 0.45),
+        md: shade(MUTED, 0.45),
+      }
+      const OTHER = shade(MUTED, 0.62)
+
+      const materials = new Map()
+      function matFor(ext, bright) {
+        const key = ext + (bright ? '+' : '-')
+        let m = materials.get(key)
+        if (!m) {
+          const tint = TINTS[ext] || OTHER
+          m = new THREE.MeshStandardMaterial({
+            color: tint,
+            roughness: 0.85,
+            metalness: 0,
+            emissive: bright ? tint : 0x000000,
+            emissiveIntensity: bright ? 0.6 : 0,
+          })
+          materials.set(key, m)
+        }
+        return m
+      }
+
+      const slabMat = new THREE.MeshStandardMaterial({ color: 0x1a1a20, roughness: 1, metalness: 0 })
+      const boxGeo = new THREE.BoxGeometry(0.68, 1, 0.68)
+      const boxes = []
+
+      const PITCH = 1
+      const PAD = 0.7
+      const STREET = 2
+
+      let extent = 12
+
+      function label(text, width) {
+        const c = document.createElement('canvas')
+        c.width = 512
+        c.height = 128
+        const ctx = c.getContext('2d')
+        ctx.fillStyle = '#aca393'
+        ctx.font = '600 44px -apple-system, system-ui, sans-serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        if ('letterSpacing' in ctx) ctx.letterSpacing = '10px'
+        ctx.fillText(text.toUpperCase(), 256, 64)
+        const tex = new THREE.CanvasTexture(c)
+        tex.colorSpace = THREE.SRGBColorSpace
+        const mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(width, width / 4),
+          new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.75, depthWrite: false })
+        )
+        mesh.rotation.x = -Math.PI / 2
+        return mesh
+      }
+
+      function build(files) {
+        const groups = new Map()
+        let largest = files[0]
+        for (const f of files) {
+          const top = f.dir === '.' ? 'root' : f.dir.split('/')[0]
+          if (!groups.has(top)) groups.set(top, [])
+          groups.get(top).push(f)
+          if (f.size > largest.size) largest = f
+        }
+
+        const districts = [...groups].map(([name, list]) => {
+          list.sort((a, b) => (a.dir === b.dir ? a.path.localeCompare(b.path) : a.dir.localeCompare(b.dir)))
+          const cols = Math.ceil(Math.sqrt(list.length * 1.3))
+          const rows = Math.ceil(list.length / cols)
+          return { name, list, cols, w: cols * PITCH + PAD * 2, d: rows * PITCH + PAD * 2 }
+        })
+        districts.sort((a, b) => b.w * b.d - a.w * a.d)
+
+        // Shelf packing: fill rows up to a width near the square root of the total area.
+        const area = districts.reduce((s, d) => s + d.w * d.d, 0)
+        const maxW = Math.max(districts[0].w, Math.sqrt(area) * 1.45)
+        let x = 0
+        let z = 0
+        let rowD = 0
+        for (const d of districts) {
+          if (x > 0 && x + d.w > maxW) {
+            x = 0
+            z += rowD + STREET
+            rowD = 0
+          }
+          d.x = x
+          d.z = z
+          x += d.w + STREET
+          rowD = Math.max(rowD, d.d)
+        }
+        const totalW = Math.max(...districts.map((d) => d.x + d.w))
+        const totalD = z + rowD
+
+        for (const d of districts) {
+          d.x -= totalW / 2
+          d.z -= totalD / 2
+          const slab = new THREE.Mesh(new THREE.BoxGeometry(d.w, 0.08, d.d), slabMat)
+          slab.position.set(d.x + d.w / 2, 0.04, d.z + d.d / 2)
+          city.add(slab)
+
+          d.list.forEach((f, i) => {
+            const col = i % d.cols
+            const row = Math.floor(i / d.cols)
+            const h = Math.max(0.25, (Math.log2(Math.max(f.size, 2)) - 3) * 0.38)
+            const mesh = new THREE.Mesh(boxGeo, matFor(f.ext, false))
+            mesh.scale.y = h
+            mesh.position.set(
+              d.x + PAD + col * PITCH + PITCH / 2,
+              0.08 + h / 2,
+              d.z + PAD + row * PITCH + PITCH / 2
+            )
+            mesh.userData.file = f
+            city.add(mesh)
+            boxes.push(mesh)
+          })
+
+          const tag = label(d.name, Math.min(d.w * 0.8, 4.5))
+          tag.position.set(d.x + d.w / 2, 0.01, d.z + d.d + 0.6)
+          city.add(tag)
+        }
+
+        extent = Math.max(totalW, totalD) / 2 + 1.5
+        filesEl.textContent = files.length
+        districtsEl.textContent = districts.length
+        largestEl.textContent = largest.path
+        fit()
+      }
+
+      // Camera: spherical orbit around the city centre.
+      const target = new THREE.Vector3(0, 0.8, 0)
+      let theta = 0.7
+      let phi = 1.0
+      let radius = 0
+      let minR = 1
+      let maxR = 100
+      let spin = 0.07
+
+      const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
+
+      function fit() {
+        const vFov = (camera.fov * Math.PI) / 180
+        const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect)
+        const fitR = Math.max(extent / Math.tan(vFov / 2), extent / Math.tan(hFov / 2)) * 0.95
+        minR = fitR * 0.35
+        maxR = fitR * 1.8
+        radius = clamp(radius || fitR, minR, maxR)
+        scene.fog = new THREE.Fog(BG, fitR * 1.1, fitR * 3.2)
+      }
+
+      function placeCamera() {
+        const s = Math.sin(phi) * radius
+        camera.position.set(
+          target.x + s * Math.sin(theta),
+          target.y + Math.cos(phi) * radius,
+          target.z + s * Math.cos(theta)
+        )
+        camera.lookAt(target)
+      }
+
+      function resize() {
+        const w = stage.clientWidth
+        const h = stage.clientHeight
+        renderer.setSize(w, h, false)
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+        fit()
+      }
+      window.addEventListener('resize', resize)
+      resize()
+
+      // Pointer: drag orbits, wheel zooms, hover (or tap) picks a box.
+      const raycaster = new THREE.Raycaster()
+      const ndc = new THREE.Vector2()
+      let dragging = false
+      let pointerIn = false
+      let lastX = 0
+      let lastY = 0
+      let hovered = null
+
+      function setNdc(e) {
+        const r = canvas.getBoundingClientRect()
+        ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
+      }
+
+      function setHover(mesh) {
+        if (mesh === hovered) return
+        if (hovered) hovered.material = matFor(hovered.userData.file.ext, false)
+        hovered = mesh
+        if (!mesh) {
+          pickEl.textContent = ''
+          return
+        }
+        const f = mesh.userData.file
+        mesh.material = matFor(f.ext, true)
+        const kb = document.createElement('strong')
+        kb.textContent = (f.size / 1024).toFixed(1) + ' KB'
+        pickEl.replaceChildren(f.path + ' · ', kb)
+      }
+
+      function pick() {
+        raycaster.setFromCamera(ndc, camera)
+        const hit = raycaster.intersectObjects(boxes, false)[0]
+        setHover(hit ? hit.object : null)
+      }
+
+      canvas.addEventListener('pointerdown', (e) => {
+        dragging = true
+        lastX = e.clientX
+        lastY = e.clientY
+        canvas.setPointerCapture(e.pointerId)
+        canvas.classList.add('dragging')
+        setNdc(e)
+        if (e.pointerType !== 'mouse') pick()
+      })
+      canvas.addEventListener('pointermove', (e) => {
+        setNdc(e)
+        if (e.pointerType === 'mouse') pointerIn = true
+        if (!dragging) return
+        const dx = e.clientX - lastX
+        const dy = e.clientY - lastY
+        lastX = e.clientX
+        lastY = e.clientY
+        theta -= dx * 0.006
+        phi = clamp(phi - dy * 0.005, 0.3, 1.45)
+      })
+      const release = () => {
+        dragging = false
+        canvas.classList.remove('dragging')
+      }
+      canvas.addEventListener('pointerup', release)
+      canvas.addEventListener('pointercancel', release)
+      canvas.addEventListener('pointerleave', (e) => {
+        if (e.pointerType !== 'mouse') return
+        pointerIn = false
+        setHover(null)
+      })
+      canvas.addEventListener(
+        'wheel',
+        (e) => {
+          e.preventDefault()
+          radius = clamp(radius * Math.exp(e.deltaY * 0.0012), minR, maxR)
+        },
+        { passive: false }
+      )
+
+      let running = false
+      let last = 0
+
+      function frame(now) {
+        if (document.hidden) {
+          running = false
+          return
+        }
+        const dt = Math.min((now - last) / 1000, 0.1)
+        last = now
+        const want = dragging || (hovered && pointerIn) ? 0 : 0.07
+        spin += (want - spin) * Math.min(1, dt * 3)
+        theta += spin * dt
+        if (pointerIn && !dragging) pick()
+        placeCamera()
+        renderer.render(scene, camera)
+        requestAnimationFrame(frame)
+      }
+
+      function start() {
+        if (running) return
+        running = true
+        last = performance.now()
+        requestAnimationFrame(frame)
+      }
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) start()
+      })
+      start()
+
+      fetch('/previews/code-city.json')
+        .then((r) => r.json())
+        .then(build)
+        .catch(() => {
+          pickEl.textContent = 'The repository data did not load'
+        })
+    </script>
+  </body>
+</html>

@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Noventis - Spreadsheet to system preview</title>
+    <style>
+      :root {
+        --bg: #0a0a0d;
+        --text: #f1ece3;
+        --muted: #aca393;
+        --copper: #c4884d;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .stage {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        background:
+          radial-gradient(1000px 600px at 50% 50%, rgba(196, 136, 77, 0.05), transparent 70%),
+          var(--bg);
+      }
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        pointer-events: none;
+        padding: 5vh 2rem 0;
+        text-align: center;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.24em;
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin: 0 0 0.5rem;
+      }
+      h1 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 400;
+        font-size: clamp(1.4rem, 3vw, 2.4rem);
+        margin: 0;
+      }
+      .hud {
+        position: absolute;
+        bottom: 1.4rem;
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.4rem 2.2rem;
+        padding: 0 1rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(172, 163, 147, 0.7);
+        pointer-events: none;
+      }
+      .hud strong {
+        color: var(--copper);
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        font-variant-numeric: tabular-nums;
+      }
+      .hud .cap { color: rgba(172, 163, 147, 0.5); }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <canvas id="c"></canvas>
+      <div class="overlay">
+        <p class="eyebrow">Preview · Spreadsheet to system</p>
+        <h1 id="tagline">Row by row, checked on the way.</h1>
+      </div>
+      <div class="hud" id="hud">
+        <span>Migrated <strong id="migrated">0</strong></span>
+        <span>Fixed <strong id="fixed">0</strong></span>
+        <span>Rejected <strong id="rejected">0</strong></span>
+        <span class="cap">Demo data · every row checked · restarts</span>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        const canvas = document.getElementById('c')
+        const ctx = canvas.getContext('2d')
+        const stage = canvas.parentElement
+        const tagline = document.getElementById('tagline')
+        const hudEl = document.getElementById('hud')
+        const migratedEl = document.getElementById('migrated')
+        const fixedEl = document.getElementById('fixed')
+        const rejectedEl = document.getElementById('rejected')
+        const dpr = Math.min(window.devicePixelRatio || 1, 2)
+
+        const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+        const SANS = '-apple-system, system-ui, sans-serif'
+        const BONE = '241, 236, 227'
+        const MUTED = '172, 163, 147'
+        const COPPER = '196, 136, 77'
+        const BATCH = 30
+        const WAIT_MS = 3000
+        const STAGES = ['trim', 'parse date', 'parse money', 'validate email', 'dedupe']
+        const LIFT_MS = 180
+        const DWELL_MS = 95
+        const HOP_MS = 50
+        const LAND_MS = 220
+        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+        // Demo names are built from word lists. They are not people.
+        const FIRST = ['Hazel', 'Rowan', 'Wren', 'Sage', 'Juniper', 'Aster', 'Reed', 'Linden', 'Marlow', 'Bryony', 'Fenn', 'Tamsin', 'Perry', 'Elowen', 'Kit', 'Nell', 'Ottilie', 'Piran', 'Idris', 'Morwen', 'Carys', 'Teal', 'Ember', 'Lark', 'Quin']
+        const LAST = ['Thimble', 'Fairweather', 'Lantern', 'Quill', 'Harrow', 'Bramble', 'Saltmarsh', 'Kettle', 'Wicker', 'Fallow', 'Garland', 'Pennyworth', 'Tallow', 'Mossby', 'Candlewick', 'Orchard', 'Ashdown', 'Hollin', 'Furlong', 'Wexby', 'Dapple', 'Marram', 'Sorrel', 'Tansy']
+        const DOMAINS = ['example.com', 'example.org', 'example.net', 'demo.test']
+
+        const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
+        const lerp = (a, b, k) => a + (b - a) * k
+        const ease = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2)
+        const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
+        const rint = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1))
+        const p2 = (n) => String(n).padStart(2, '0')
+
+        // ---- demo batch -------------------------------------------------------
+
+        function spaces(n) {
+          return ' '.repeat(n)
+        }
+
+        function messyDate(y, m, d) {
+          const f = Math.random()
+          if (f < 0.4) return `${y}-${p2(m)}-${p2(d)}`
+          if (f < 0.72) return `${p2(d)}/${p2(m)}/${y}`
+          return `${d} ${MONTHS[m - 1]} ${y}`
+        }
+
+        function messyMoney(pence) {
+          const pounds = Math.floor(pence / 100)
+          const whole = pence % 100 === 0 && Math.random() < 0.5
+          let s = whole ? String(pounds) : `${pounds}.${p2(pence % 100)}`
+          if (pounds >= 1000 && Math.random() < 0.6) {
+            const [a, b] = s.split('.')
+            s = a.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (b ? '.' + b : '')
+          }
+          if (Math.random() < 0.35) s = '£' + s
+          if (Math.random() < 0.1) s = s + ' '
+          return s
+        }
+
+        function makeBatch() {
+          const base = []
+          const used = new Set()
+          while (base.length < BATCH) {
+            const f = pick(FIRST)
+            const l = pick(LAST)
+            if (used.has(f + l)) continue
+            used.add(f + l)
+            const local = Math.random() < 0.55 ? `${f}.${l}` : `${f[0]}${l}`
+            base.push({
+              name: `${f} ${l}`,
+              email: `${local}@${pick(DOMAINS)}`.toLowerCase(),
+              y: rint(2021, 2025),
+              m: rint(1, 12),
+              d: rint(1, 28),
+              pence: Math.random() < 0.3 ? rint(0, 9999) : rint(10000, 420000),
+            })
+          }
+          // roles: two duplicates (copies of an earlier row), two emails with no @, one name in capitals
+          const order = base.map((_, i) => i)
+          const dupIdx = []
+          while (dupIdx.length < 2) {
+            const j = rint(8, BATCH - 1)
+            if (!dupIdx.includes(j)) dupIdx.push(j)
+          }
+          const badIdx = []
+          while (badIdx.length < 2) {
+            const j = rint(0, BATCH - 1)
+            if (!dupIdx.includes(j) && !badIdx.includes(j)) badIdx.push(j)
+          }
+          let capsIdx = rint(0, BATCH - 1)
+          while (dupIdx.includes(capsIdx)) capsIdx = rint(0, BATCH - 1)
+
+          // About half the rows are clean; the rest carry one or more problems.
+          return order.map((i) => {
+            const b = base[i]
+            let src = b
+            if (dupIdx.includes(i)) {
+              let k = rint(0, i - 1)
+              while (dupIdx.includes(k) || badIdx.includes(k)) k = rint(0, i - 1)
+              src = base[k]
+            }
+            const messy = Math.random() < 0.5
+            let name = src.name
+            if (capsIdx === i) name = name.toUpperCase()
+            if (messy && Math.random() < 0.45) name = name + spaces(rint(1, 3))
+            if (messy && Math.random() < 0.12) name = ' ' + name
+            let email = src.email
+            if (dupIdx.includes(i) && Math.random() < 0.5) email = email[0].toUpperCase() + email.slice(1)
+            if (badIdx.includes(i)) email = Math.random() < 0.5 ? email.replace('@', '.') : email.replace('@', '')
+            if (messy && Math.random() < 0.3) email = email + spaces(rint(1, 2))
+            const date = messy ? messyDate(b.y, b.m, b.d) : `${b.y}-${p2(b.m)}-${p2(b.d)}`
+            const money = messy ? messyMoney(b.pence) : `${Math.floor(b.pence / 100)}.${p2(b.pence % 100)}`
+            return { raw: { name, email, date, money } }
+          })
+        }
+
+        // ---- the pipeline (real functions, applied to the strings) -------------
+
+        function titleCase(s) {
+          return s.toLowerCase().replace(/(^|\s|-)\S/g, (c) => c.toUpperCase())
+        }
+
+        function parseDate(s) {
+          let m
+          if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s))) return check(m[1], m[2], m[3])
+          if ((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s))) return check(m[3], m[2], m[1])
+          if ((m = /^(\d{1,2}) ([A-Za-z]{3}) (\d{4})$/.exec(s))) {
+            const mi = MONTHS.findIndex((x) => x.toLowerCase() === m[2].toLowerCase())
+            if (mi < 0) return null
+            return check(m[3], mi + 1, m[1])
+          }
+          return null
+          function check(y, mo, d) {
+            mo = Number(mo)
+            d = Number(d)
+            if (mo < 1 || mo > 12 || d < 1 || d > 31) return null
+            return `${y}-${p2(mo)}-${p2(d)}`
+          }
+        }
+
+        function parseMoney(s) {
+          const t = s.replace(/[£,\s]/g, '')
+          if (!/^\d+(\.\d{1,2})?$/.test(t)) return null
+          const [a, b = ''] = t.split('.')
+          return Number(a) * 100 + Number((b + '00').slice(0, 2))
+        }
+
+        function emailProblem(s) {
+          if (!s.includes('@')) return 'email has no @'
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return 'email not valid'
+          return null
+        }
+
+        // Runs the whole pipeline up front so the animation can replay it stage by stage.
+        function process(row, index, seen) {
+          const raw = row.raw
+          const fixes = []
+          const stageText = []
+          let reject = null
+
+          const name0 = raw.name.replace(/\s+/g, ' ').trim()
+          const name = /[A-Z]/.test(name0) && name0 === name0.toUpperCase() ? titleCase(name0) : name0
+          const email = raw.email.trim().toLowerCase()
+          const dateS = raw.date.trim()
+          const moneyS = raw.money.trim()
+          if (name !== raw.name) fixes.push('name')
+          if (email !== raw.email) fixes.push('email')
+          let trimText = 'nothing to trim'
+          if (name !== raw.name) trimText = `"${raw.name}" → ${name}`
+          else if (email !== raw.email) trimText = `"${raw.email}" → ${email}`
+          else if (moneyS !== raw.money || dateS !== raw.date) trimText = 'spaces removed'
+          stageText.push(trimText)
+
+          const iso = parseDate(dateS)
+          if (iso === null) reject = reject || { stage: 1, reason: 'date not understood' }
+          else if (iso !== dateS) fixes.push('date')
+          stageText.push(iso === null ? `${dateS} ?` : iso === dateS ? `${iso} already ISO` : `${dateS} → ${iso}`)
+
+          const pence = parseMoney(moneyS)
+          if (pence === null) reject = reject || { stage: 2, reason: 'amount not understood' }
+          else if (/[£,\s]/.test(raw.money)) fixes.push('amount')
+          stageText.push(pence === null ? `${moneyS} ?` : `${moneyS} → ${pence} p`)
+
+          const ep = emailProblem(email)
+          if (ep) reject = reject || { stage: 3, reason: ep }
+          stageText.push(ep ? ep : `${email} ok`)
+
+          if (!reject) {
+            if (seen.has(email)) reject = { stage: 4, reason: `duplicate of row ${seen.get(email) + 1}` }
+            else seen.set(email, index)
+          }
+          stageText.push(reject && reject.stage === 4 ? reject.reason : 'new customer')
+
+          return { name, email, iso, pence, fixes, reject, stageText }
+        }
+
+        // ---- state --------------------------------------------------------------
+
+        let W = 0
+        let H = 0
+        let area = { x: 0, y: 0, w: 0, h: 0 }
+        let L = null
+
+        let rows = []
+        let idx = 0
+        let seen = new Map()
+        let system = []
+        let rejected = []
+        let inflight = null
+        let waiting = false
+        let waitT = 0
+        let batchFade = 0
+        let counts = { migrated: 0, fixed: 0, rejected: 0 }
+        let log = []
+        let logShift = 0
+        let stageFlash = -1
+
+        function newBatch() {
+          rows = makeBatch()
+          idx = 0
+          seen = new Map()
+          system = []
+          rejected = []
+          inflight = null
+          waiting = false
+          waitT = 0
+          batchFade = 0
+          counts = { migrated: 0, fixed: 0, rejected: 0 }
+          updateHud()
+          addLog(`new batch · ${BATCH} demo rows`)
+        }
+
+        function addLog(text) {
+          log.push(text)
+          if (log.length > 6) log.shift()
+          logShift = 1
+        }
+
+        function updateHud() {
+          migratedEl.textContent = counts.migrated
+          fixedEl.textContent = counts.fixed
+          rejectedEl.textContent = counts.rejected
+        }
+
+        function startRow() {
+          const row = rows[idx]
+          const res = process(row, idx, seen)
+          row.state = 'moving'
+          const segs = [LIFT_MS]
+          const last = res.reject ? res.reject.stage : STAGES.length - 1
+          for (let k = 0; k <= last; k++) {
+            segs.push(DWELL_MS)
+            if (k < last) segs.push(HOP_MS)
+          }
+          segs.push(LAND_MS)
+          inflight = { index: idx, row, res, t: 0, segs, total: segs.reduce((a, b) => a + b, 0), lastStage: last }
+        }
+
+        function landRow() {
+          const { row, res, index } = inflight
+          if (res.reject) {
+            row.state = 'rejected'
+            rejected.push({ name: res.name, reason: res.reject.reason, index })
+            counts.rejected++
+            addLog(`row ${index + 1} · ${res.name} · rejected: ${res.reject.reason}`)
+          } else {
+            row.state = 'done'
+            system.push({ name: res.name, email: res.email, iso: res.iso, pence: res.pence, fixed: res.fixes.length > 0, at: performance.now() })
+            counts.migrated++
+            if (res.fixes.length) counts.fixed++
+            addLog(`row ${index + 1} · ${res.name} · ${res.fixes.length ? 'fixed ' + res.fixes.join(', ') : 'clean'}`)
+          }
+          inflight = null
+          idx++
+          updateHud()
+          if (idx >= rows.length) {
+            waiting = true
+            waitT = 0
+            addLog(`batch done · ${counts.migrated} migrated · ${counts.fixed} fixed · ${counts.rejected} rejected · new batch in 3 s`)
+          }
+        }
+
+        function tick(dt) {
+          batchFade = Math.min(1, batchFade + dt / 500)
+          logShift = Math.max(0, logShift - dt / 260)
+          if (waiting) {
+            waitT += dt
+            if (waitT >= WAIT_MS) newBatch()
+            return
+          }
+          if (!inflight) {
+            if (idx < rows.length) startRow()
+            return
+          }
+          inflight.t += dt
+          if (inflight.t >= inflight.total) landRow()
+        }
+
+        // ---- layout -------------------------------------------------------------
+
+        function measureArea() {
+          const sr = stage.getBoundingClientRect()
+          const tr = tagline.getBoundingClientRect()
+          const hr = hudEl.getBoundingClientRect()
+          const top = tr.bottom - sr.top + 14
+          const bottom = hr.top - sr.top - 10
+          const pad = W < 520 ? 10 : 22
+          area = { x: pad, y: top, w: W - pad * 2, h: Math.max(140, bottom - top) }
+        }
+
+        function layout() {
+          const a = area
+          const logH = a.h > 480 ? 39 : 26
+          const panelsH = a.h - logH - 8
+          const gap = W < 520 ? 10 : 22
+          const pipeW = clamp(a.w * 0.14, 84, 130)
+          const sideW = (a.w - pipeW - gap * 2) / 2
+          const titleH = 20
+          const rowH = clamp((panelsH - titleH - 14) / (BATCH + 1), 8.5, 17)
+          const fs = clamp(rowH * 0.78, 7.5, 12)
+          const sheet = { x: a.x, y: a.y, w: sideW, h: panelsH }
+          const pipe = { x: a.x + sideW + gap, y: a.y, w: pipeW, h: panelsH }
+          const sys = { x: pipe.x + pipeW + gap, y: a.y, w: sideW, h: panelsH }
+          const rejH = titleH + rowH * 4 + 4
+          const tableTop = sys.y + titleH + 16
+          const tableH = sys.h - (titleH + 16) - rejH - 6
+          const fit = Math.max(1, Math.floor(tableH / rowH))
+          const stageGap = clamp(panelsH / 9, 24, 44)
+          const stageY0 = pipe.y + pipe.h / 2 - stageGap * 2
+          L = {
+            sheet, pipe, sys, rowH, fs, titleH, gap,
+            sheetRows: sheet.y + titleH + 14,
+            tableTop, fit,
+            rej: { x: sys.x, y: sys.y + sys.h - rejH, w: sys.w, h: rejH },
+            logBox: { x: a.x, y: a.y + a.h - logH, w: a.w, h: logH },
+            stageY: STAGES.map((_, k) => stageY0 + k * stageGap),
+            chipW: Math.min(pipeW + gap * 2 + 24, 200),
+            cols: [0, 0.27, 0.66, 0.84],
+            sysCols: [0, 0.26, 0.63, 0.8, 0.92],
+          }
+        }
+
+        function resize() {
+          const r = stage.getBoundingClientRect()
+          W = Math.max(1, r.width)
+          H = Math.max(1, r.height)
+          canvas.width = Math.floor(W * dpr)
+          canvas.height = Math.floor(H * dpr)
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+          measureArea()
+          layout()
+        }
+
+        // The HUD wraps differently as its values change, which moves the content area.
+        let lastMeasure = 0
+        function checkArea(now) {
+          if (now - lastMeasure < 500) return
+          lastMeasure = now
+          const { y, w, h } = area
+          measureArea()
+          if (area.y !== y || area.w !== w || area.h !== h) layout()
+        }
+
+        // ---- drawing ------------------------------------------------------------
+
+        function rr(x, y, w, h, r) {
+          r = Math.min(r, w / 2, h / 2)
+          ctx.beginPath()
+          ctx.moveTo(x + r, y)
+          ctx.arcTo(x + w, y, x + w, y + h, r)
+          ctx.arcTo(x + w, y + h, x, y + h, r)
+          ctx.arcTo(x, y + h, x, y, r)
+          ctx.arcTo(x, y, x + w, y, r)
+          ctx.closePath()
+        }
+
+        function tracked(text, x, y, spacing) {
+          for (const ch of text) {
+            ctx.fillText(ch, x, y)
+            x += ctx.measureText(ch).width + spacing
+          }
+        }
+
+        function trackedWidth(text, spacing) {
+          let w = 0
+          for (const ch of text) w += ctx.measureText(ch).width + spacing
+          return w - spacing
+        }
+
+        function panel(r, title, titleColour) {
+          rr(r.x, r.y, r.w, r.h, 6)
+          ctx.fillStyle = '#0c0c10'
+          ctx.fill()
+          ctx.strokeStyle = 'rgba(255, 245, 232, 0.08)'
+          ctx.lineWidth = 1
+          ctx.stroke()
+          if (title) {
+            ctx.font = `500 9.5px ${SANS}`
+            ctx.fillStyle = titleColour || `rgba(${MUTED}, 0.75)`
+            ctx.textAlign = 'left'
+            ctx.textBaseline = 'middle'
+            tracked(title.toUpperCase(), r.x + 10, r.y + L.titleH / 2 + 2, 1.8)
+          }
+        }
+
+        function fitText(text, maxW) {
+          if (ctx.measureText(text).width <= maxW) return text
+          let lo = 0
+          let hi = text.length
+          while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1
+            if (ctx.measureText(text.slice(0, mid) + '…').width <= maxW) lo = mid
+            else hi = mid - 1
+          }
+          return text.slice(0, lo) + '…'
+        }
+
+        // Leading and trailing spaces are drawn as faint dots so the mess is visible.
+        // Cells are measured once per layout, not per frame.
+        function prepCell(text, maxW, dotW) {
+          const m = /^( *)(.*?)( *)$/.exec(text)
+          const fitted = fitText(m[2], maxW - (m[1].length + m[3].length) * dotW)
+          return { lead: m[1].length, trail: m[3].length, text: fitted, w: ctx.measureText(fitted).width }
+        }
+
+        function drawCell(cell, x, y, alpha, dotW) {
+          let cx = x
+          if (cell.lead) {
+            ctx.fillStyle = `rgba(${COPPER}, ${0.55 * alpha})`
+            for (let i = 0; i < cell.lead; i++) {
+              ctx.fillText('·', cx, y)
+              cx += dotW
+            }
+          }
+          ctx.fillStyle = `rgba(${BONE}, ${alpha})`
+          ctx.fillText(cell.text, cx, y)
+          if (cell.trail) {
+            cx += cell.w
+            ctx.fillStyle = `rgba(${COPPER}, ${0.55 * alpha})`
+            for (let i = 0; i < cell.trail; i++) {
+              ctx.fillText('·', cx, y)
+              cx += dotW
+            }
+          }
+        }
+
+        function drawSheet() {
+          const r = L.sheet
+          panel(r, 'Spreadsheet · demo data')
+          const inner = { x: r.x + 10, w: r.w - 20 }
+          const colX = L.cols.map((c) => inner.x + c * inner.w)
+          const colW = L.cols.map((c, i) => ((L.cols[i + 1] || 1) - c) * inner.w - 6)
+          ctx.font = `500 ${Math.max(7.5, L.fs - 1)}px ${SANS}`
+          ctx.textAlign = 'left'
+          ctx.textBaseline = 'middle'
+          ctx.fillStyle = `rgba(${MUTED}, 0.6)`
+          const hy = r.y + L.titleH + 6
+          ;['Name', 'Email', 'Joined', 'Balance'].forEach((h, i) => ctx.fillText(h.toUpperCase(), colX[i], hy))
+          ctx.save()
+          ctx.beginPath()
+          ctx.rect(r.x, L.sheetRows - 1, r.w, r.y + r.h - L.sheetRows)
+          ctx.clip()
+          ctx.font = `${L.fs}px ${MONO}`
+          const dotW = ctx.measureText('·').width
+          const key = `${L.fs}|${Math.round(inner.w)}`
+          rows.forEach((row, i) => {
+            if (row.key !== key) {
+              row.key = key
+              row.cells = [row.raw.name, row.raw.email, row.raw.date, row.raw.money].map((v, c) => prepCell(v, colW[c], dotW))
+            }
+            const y = L.sheetRows + i * L.rowH + L.rowH / 2
+            let alpha = 0.8 * batchFade
+            if (row.state === 'done') alpha = 0.22
+            if (row.state === 'moving') {
+              ctx.fillStyle = `rgba(${BONE}, 0.07)`
+              ctx.fillRect(r.x + 1, y - L.rowH / 2, r.w - 2, L.rowH)
+              ctx.fillStyle = `rgba(${BONE}, 0.7)`
+              ctx.fillRect(r.x + 1, y - L.rowH / 2, 2, L.rowH)
+            }
+            if (row.state === 'rejected') {
+              ctx.fillStyle = `rgba(${COPPER}, 0.5)`
+              row.cells.forEach((cell, c) => ctx.fillText(cell.text, colX[c], y))
+              return
+            }
+            row.cells.forEach((cell, c) => drawCell(cell, colX[c], y, alpha, dotW))
+          })
+          ctx.restore()
+        }
+
+        function drawSystem(now) {
+          const r = L.sys
+          panel(r, 'System')
+          const inner = { x: r.x + 10, w: r.w - 20 }
+          ctx.font = `500 ${Math.max(7.5, L.fs - 1)}px ${SANS}`
+          ctx.textAlign = 'left'
+          ctx.textBaseline = 'middle'
+          ctx.fillStyle = `rgba(${MUTED}, 0.6)`
+          const schema = 'customer · email · joined (ISO date) · balance (pence)'
+          ctx.fillText(fitText(schema, inner.w), inner.x, r.y + L.titleH + 6)
+          const colX = L.sysCols.map((c) => inner.x + c * inner.w)
+          const colW = L.sysCols.map((c, i) => ((L.sysCols[i + 1] || 1) - c) * inner.w - 6)
+          const shown = system.slice(-L.fit)
+          ctx.font = `${L.fs}px ${MONO}`
+          shown.forEach((row, i) => {
+            const y = L.tableTop + i * L.rowH + L.rowH / 2
+            const k = clamp((now - row.at) / 600, 0, 1)
+            const alpha = 0.85 * k + 0.1
+            ctx.fillStyle = `rgba(${BONE}, ${alpha})`
+            ctx.textAlign = 'left'
+            ctx.fillText(fitText(row.name, colW[0]), colX[0], y)
+            ctx.fillText(fitText(row.email, colW[1]), colX[1], y)
+            ctx.fillText(row.iso, colX[2], y)
+            ctx.textAlign = 'right'
+            ctx.fillText(String(row.pence), colX[4] - 8, y)
+            if (row.fixed) {
+              ctx.textAlign = 'left'
+              ctx.font = `500 ${Math.max(6.5, L.fs - 2.5)}px ${SANS}`
+              ctx.fillStyle = `rgba(${MUTED}, ${0.75 * k})`
+              ctx.fillText('fixed', colX[4], y)
+              ctx.font = `${L.fs}px ${MONO}`
+            }
+          })
+          if (system.length === 0 && batchFade >= 1) {
+            ctx.textAlign = 'left'
+            ctx.font = `${L.fs}px ${SANS}`
+            ctx.fillStyle = `rgba(${MUTED}, 0.35)`
+            ctx.fillText('empty', inner.x, L.tableTop + L.rowH / 2)
+          }
+
+          // rejected list
+          const rj = L.rej
+          ctx.strokeStyle = 'rgba(255, 245, 232, 0.08)'
+          ctx.beginPath()
+          ctx.moveTo(rj.x + 1, rj.y)
+          ctx.lineTo(rj.x + rj.w - 1, rj.y)
+          ctx.stroke()
+          ctx.font = `500 9.5px ${SANS}`
+          ctx.textAlign = 'left'
+          ctx.fillStyle = `rgba(${COPPER}, 0.85)`
+          tracked('REJECTED', rj.x + 10, rj.y + L.titleH / 2 + 2, 1.8)
+          ctx.font = `${L.fs}px ${MONO}`
+          rejected.slice(-4).forEach((rw, i) => {
+            const y = rj.y + L.titleH + 2 + i * L.rowH + L.rowH / 2
+            ctx.fillStyle = `rgba(${COPPER}, 0.85)`
+            ctx.fillText(fitText(`row ${rw.index + 1} · ${rw.name} · ${rw.reason}`, inner.w), inner.x, y)
+          })
+        }
+
+        function drawPipe(now) {
+          const p = L.pipe
+          const cx = p.x + p.w / 2
+          ctx.strokeStyle = `rgba(${BONE}, 0.08)`
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.moveTo(cx, L.stageY[0] - 18)
+          ctx.lineTo(cx, L.stageY[STAGES.length - 1] + 18)
+          ctx.stroke()
+          const active = inflight ? currentStage(inflight) : -1
+          ctx.font = `500 9.5px ${SANS}`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          STAGES.forEach((name, k) => {
+            const y = L.stageY[k]
+            const hot = k === active
+            const passed = inflight && k < active
+            ctx.fillStyle = hot ? `rgb(${COPPER})` : passed ? `rgba(${BONE}, 0.7)` : `rgba(${MUTED}, 0.55)`
+            ctx.beginPath()
+            ctx.arc(cx, y, hot ? 3 : 2, 0, Math.PI * 2)
+            ctx.fill()
+            const label = name.toUpperCase()
+            const tw = trackedWidth(label, 1.5)
+            if (tw <= p.w - 4) tracked(label, cx - tw / 2, y + 12, 1.5)
+            else {
+              ctx.font = `500 8px ${SANS}`
+              const tw2 = trackedWidth(label, 1)
+              tracked(label, cx - tw2 / 2, y + 12, 1)
+              ctx.font = `500 9.5px ${SANS}`
+            }
+          })
+          ctx.textAlign = 'left'
+        }
+
+        // Which pipeline stage the travelling row is on, or -1 while lifting or landing.
+        function currentStage(f) {
+          let t = f.t
+          if (t < f.segs[0]) return -1
+          t -= f.segs[0]
+          for (let k = 0; k <= f.lastStage; k++) {
+            if (t < DWELL_MS) return k
+            t -= DWELL_MS
+            if (k < f.lastStage) {
+              if (t < HOP_MS) return k
+              t -= HOP_MS
+            }
+          }
+          return -1
+        }
+
+        function chipPos(f) {
+          const sheetPt = { x: L.sheet.x + L.sheet.w, y: L.sheetRows + f.index * L.rowH + L.rowH / 2 }
+          const pcx = L.pipe.x + L.pipe.w / 2
+          const stagePt = (k) => ({ x: pcx, y: L.stageY[k] })
+          let dest
+          if (f.res.reject) {
+            const n = Math.min(rejected.length, 3)
+            dest = { x: L.rej.x, y: L.rej.y + L.titleH + 2 + n * L.rowH + L.rowH / 2 }
+          } else {
+            const n = Math.min(system.length, L.fit - 1)
+            dest = { x: L.sys.x, y: L.tableTop + n * L.rowH + L.rowH / 2 }
+          }
+          let t = f.t
+          if (t < f.segs[0]) {
+            const e0 = ease(t / f.segs[0])
+            const s0 = stagePt(0)
+            return { x: lerp(sheetPt.x, s0.x, e0), y: lerp(sheetPt.y, s0.y, e0), k: 'lift', seg: e0 }
+          }
+          t -= f.segs[0]
+          for (let k = 0; k <= f.lastStage; k++) {
+            if (t < DWELL_MS) return Object.assign(stagePt(k), { k: 'stage', stage: k })
+            t -= DWELL_MS
+            if (k < f.lastStage) {
+              if (t < HOP_MS) {
+                const a = stagePt(k)
+                const b = stagePt(k + 1)
+                const e = ease(t / HOP_MS)
+                return { x: a.x, y: lerp(a.y, b.y, e), k: 'stage', stage: k }
+              }
+              t -= HOP_MS
+            }
+          }
+          const from = stagePt(f.lastStage)
+          const e = ease(clamp(t / LAND_MS, 0, 1))
+          return { x: lerp(from.x, dest.x, e), y: lerp(from.y, dest.y, e), k: 'land', seg: e }
+        }
+
+        function drawChip() {
+          const f = inflight
+          if (!f) return
+          const pos = chipPos(f)
+          const bad = !!f.res.reject && (pos.k === 'land' || (pos.k === 'stage' && pos.stage === f.res.reject.stage))
+          let w = L.chipW
+          let h = 34
+          let alpha = 1
+          if (pos.k === 'lift') {
+            const s = 0.55 + 0.45 * pos.seg
+            w *= s
+            h *= s
+          }
+          if (pos.k === 'land') alpha = 1 - pos.seg * 0.85
+          const x = pos.x - w / 2
+          const y = pos.y - h / 2
+          const col = bad ? COPPER : BONE
+          ctx.globalAlpha = alpha
+          rr(x, y, w, h, 5)
+          ctx.fillStyle = '#15151b'
+          ctx.fill()
+          ctx.strokeStyle = `rgba(${col}, ${bad ? 0.95 : 0.5})`
+          ctx.lineWidth = 1
+          ctx.stroke()
+          ctx.textBaseline = 'middle'
+          ctx.textAlign = 'left'
+          let header = `row ${f.index + 1}`
+          let body = f.res.name
+          if (pos.k === 'stage') {
+            header = STAGES[pos.stage]
+            body = f.res.stageText[pos.stage]
+          } else if (pos.k === 'land') {
+            header = f.res.reject ? 'rejected' : f.res.fixes.length ? 'fixed, loaded' : 'loaded'
+            body = f.res.reject ? f.res.reject.reason : f.res.name
+          }
+          if (pos.k !== 'lift') {
+            ctx.font = `500 8.5px ${SANS}`
+            ctx.fillStyle = bad ? `rgb(${COPPER})` : `rgba(${MUTED}, 0.85)`
+            tracked(header.toUpperCase(), x + 8, y + 10, 1.5)
+            ctx.font = `10.5px ${MONO}`
+            ctx.fillStyle = bad ? `rgb(${COPPER})` : `rgba(${BONE}, 0.95)`
+            ctx.fillText(fitText(body, w - 16), x + 8, y + 24)
+          }
+          ctx.globalAlpha = 1
+        }
+
+        function drawLog() {
+          const b = L.logBox
+          const lh = 13
+          const n = Math.max(1, Math.floor(b.h / lh))
+          ctx.save()
+          ctx.beginPath()
+          ctx.rect(b.x, b.y, b.w, b.h)
+          ctx.clip()
+          ctx.font = `10.5px ${MONO}`
+          ctx.textAlign = 'left'
+          ctx.textBaseline = 'middle'
+          const lines = log.slice(-(n + 1))
+          const shift = ease(logShift) * lh
+          lines.forEach((text, i) => {
+            const y = b.y + b.h - (lines.length - 1 - i) * lh - lh / 2 + shift
+            const latest = i === lines.length - 1
+            ctx.fillStyle = latest ? `rgba(${BONE}, 0.85)` : `rgba(${MUTED}, 0.5)`
+            ctx.fillText(fitText(text, b.w - 4), b.x + 2, y)
+          })
+          ctx.restore()
+        }
+
+        function draw(now) {
+          ctx.clearRect(0, 0, W, H)
+          drawSheet()
+          drawSystem(now)
+          drawPipe(now)
+          drawChip()
+          drawLog()
+        }
+
+        let last = 0
+        let raf = 0
+        function frame(now) {
+          raf = 0
+          if (document.hidden) return
+          const dt = Math.min(64, Math.max(0, now - last))
+          last = now
+          checkArea(now)
+          tick(dt)
+          draw(now)
+          raf = requestAnimationFrame(frame)
+        }
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden && !raf) {
+            last = performance.now()
+            raf = requestAnimationFrame(frame)
+          }
+        })
+        window.addEventListener('resize', resize)
+
+        resize()
+        newBatch()
+        last = performance.now()
+        raf = requestAnimationFrame(frame)
+      })()
+    </script>
+  </body>
+</html>
