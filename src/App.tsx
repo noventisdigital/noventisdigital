@@ -71,9 +71,9 @@ function updateRouteMetadata(pathname: string) {
             canonicalPath: '/labs',
           }
       : {
-          title: 'Noventis Digital | Fractional CTO and AI Build Partner',
+          title: 'Noventis Digital | Software Engineering, AI Transformation and IT Leadership',
           description:
-            'Fractional CTO, AI strategy, and hands-on engineering for companies that need technical judgment and delivery.',
+            'Something needs building, AI needs adopting, or technology needs someone to run it. One person answers all three. Noventis Digital is John Byrne, East Midlands, UK.',
           robots: 'index,follow',
           canonicalPath: '/',
         }

@@ -1,0 +1,150 @@
+SURFACE CONCEPT SEED (key: f8acb23b; mode: persuade; source: api; approved pool: c3b204a1eed6; 306/564 human-approved; rerun with --scope surface --mode persuade --from f8acb23b --candidate-count 7 to reproduce this roll against this catalog revision)
+DEALT INDICES: 6, 7, 4 (index 6 leads)
+  After ordering the task's grounded structural candidates by resonance,
+  deal candidates 6, 7, 4 of your own grounded list to the
+  table; index 6 leads, and the deal never points at a challenger.
+  The deal is the roll, not a suggestion: the dice decide which structures
+  reach the user, so the ranking rut stays broken while the user still gets a
+  real choice, and the full ranked list stays yours. In an attended run,
+  present the three dealt structures as full cards of equal salience, the
+  lead carrying kicker THE ROLL, with steer and re-roll, and let the user
+  lock one in; the world is already settled, so this choice is composition.
+  Visualize every dealt card: with image generation available and a
+  comp-led build path (the PRESENTATION block below names the path for
+  this surface; the page toggle handles the exception), declare a comp per card and generate after
+  serving, lead first; otherwise author each card's HTML sketch (shape in
+  the PRESENTATION block below; a wireframe field from serve-question
+  --schema only as the fallback) and the page draws it. Carry that
+  path in the payload as buildPath with toggle: true. Locking a card
+  approves its comp: a surface round that put three visualized structures on
+  the table replaces the three-option comp round in visualize.md. Re-roll
+  yourself only when every dealt structure fails audience identification or
+  product clarity on named factual grounds.
+  The assignment exists to refuse the model's ranking rut, never to outrank
+  the user or the brief. Never expose assignment metadata in user-facing labels.
+CHALLENGERS:
+  1. an alien forest understory at nightfall, where luminescent spore canopies, breathing ground-veins, and slow light rain make botany feel newly invented
+     SOURCE ID: dream-surreal-impossible-worlds-luminescent-alien-understory
+     CREATIVE SPARK: The path lights itself two steps ahead: spores drift up like inverted rain and the roots pulse softly with something like attention.
+     SYSTEM GRAMMAR:
+       - Palette/material: near-black loam as ground, spore glow in cyan and lilac, root veins pulsing pale green, the brightest white bloom reserved for the focused element
+       - Type/composition: thin phosphor sans that brightens on approach, labels blooming beside their growths, no fixed grid, composition following the vein network's branching
+       - Topology/navigation: paths reveal by proximity glow; destinations announce themselves as distant pulses.
+       - Controls/state: touching a growth wakes it; attention, dormancy, and bloom are luminance states with afterglow.
+       - Responsive/motion: glow trails shorten on phones; pulses slow to still gradients under
+     WEB LEVERAGE: Pointer-proximity light fields and additive canvas glow make attention itself the illumination model.
+     QUALITY BAR: board https://impeccable.style/worlds/cards/dream-surreal-impossible-worlds-luminescent-alien-understory.webp · hero https://impeccable.style/worlds/cards/dream-surreal-impossible-worlds-luminescent-alien-understory-hero.webp
+  2. a brick build-instruction book, numbered exploded steps on sky-blue pages, 1:1 piece call-outs in a cornered box, a stud grid ruling every alignment, wordless arrows teaching assembly
+     SOURCE ID: games-toys-physics-play-brick-build-instructions
+     CREATIVE SPARK: You flatten the booklet on the carpet, tip the numbered bag out, and match a red brick to its 1:1 call-out against the page; the arrow shows the seat, the stud grid agrees, and the piece clicks down exactly where it must.
+     SYSTEM GRAMMAR:
+       - Palette/material: instruction-page sky blue as the ground, black keyline ink outlining every piece, brick red for the new part in each step, yellow held in the inventory
+       - Type/composition: oversized step numerals are almost the only text, wordless arrows do the teaching, and every element aligns to the stud grid module
+       - Topology/navigation: numbered spreads in strict sequence, a parts inventory up front, 1:1 call-out boxes zooming the pieces a step introduces
+       - Controls/state: prior assembly renders ghosted, the new pieces arrive bright with an arrow to their seat, done means clicked down flush on the studs
+       - Responsive/motion: spreads split into single step frames on small screens, call-outs pin to a corner; pieces animate down along their arrows
+     WEB LEVERAGE: svg exploded-step diagrams with dashed guide arrows, css grid locked to a stud-module unit, animation dropping new pieces along their arrows
+     QUALITY BAR: board https://impeccable.style/worlds/cards/games-toys-physics-play-brick-build-instructions.webp · hero https://impeccable.style/worlds/cards/games-toys-physics-play-brick-build-instructions-hero.webp
+  3. an edo woodblock print coming together one color block at a time, the keyblock outline printed first and each pigment block registered against carved kento notches until the sheet is whole
+     SOURCE ID: graphic-worlds-publishing-ukiyoe-block-registration
+     CREATIVE SPARK: the outline lands first in black, a ghost of a wave with nothing inside it. then indigo drops in, then safflower, each one nudged against a carved notch, and on the fifth pull the sea is suddenly deep enough to fall into.
+     SYSTEM GRAMMAR:
+       - Palette/material: mineral indigo, safflower red, and clove brown on warm kozo paper, each color a flat sealed area bounded by a black keyblock line
+       - Type/composition: vertical title cartouches sit in the upper corners, publisher and censor seals cluster at one margin as small red furniture
+       - Topology/navigation: the sheet builds in registered layers, so moving deeper adds a block rather than a page, and the keyline never moves
+       - Controls/state: controls read as carved cartouches, an active state prints its color layer in, and an inactive one shows the keyline alone
+       - Responsive/motion: narrow frames drop pigment blocks in reverse carving order, and motion is the soft bokashi wipe of one field into another
+     WEB LEVERAGE: layered svg color plates composited over one keyline, a css gradient wipe for bokashi, and progressive reveal of each registered block
+     QUALITY BAR: board https://impeccable.style/worlds/cards/graphic-worlds-publishing-ukiyoe-block-registration.webp · hero https://impeccable.style/worlds/cards/graphic-worlds-publishing-ukiyoe-block-registration-hero.webp
+  4. a toy-aisle wall of window-box sets, die-cut cellophane windows opening onto tiny illustrated dioramas, warm cream board trimmed in gingham with a friendly rounded logotype on every lid
+     SOURCE ID: pop-culture-shelf-window-box-toy-shelf
+     CREATIVE SPARK: You crouch to the third shelf and a thumb-sized kitchen glows behind cellophane, its gingham trim matching the lid, and the whole row of boxes waits like houses with their lights on.
+     SYSTEM GRAMMAR:
+       - Palette/material: warm cream board ground, gingham trims in meadow green, berry and sky blue, cellophane gloss over each window, one sunny yellow shelf tag for the featured set
+       - Type/composition: a rounded lowercase logotype names each set, hand-lettered contents lists run down the box sides, and shelves rank boxes in tidy rows with one end-cap hero
+       - Topology/navigation: aisles are categories and shelf rows are lists; every box front is the summary and lifting its lid is the detail view, the diorama unfolding inside
+       - Controls/state: hover tilts a box so light crosses the cellophane, choosing one hinges the lid open, and out-of-stock spots keep the shelf tag over empty board
+       - Responsive/motion: shelves collapse to one browsable row on phones, and motion is the gentle lid hinge and a paper pop-up rising
+     WEB LEVERAGE: css perspective tilts the boxes, clip-path cuts the windows, and the pop-up diorama unfolds with 3d transforms on open
+     QUALITY BAR: board https://impeccable.style/worlds/cards/pop-culture-shelf-window-box-toy-shelf.webp · hero https://impeccable.style/worlds/cards/pop-culture-shelf-window-box-toy-shelf-hero.webp
+  5. a crt oscilloscope on a signal bench, phosphor trace riding an etched graticule while detented knobs set channel, timebase, and trigger
+     SOURCE ID: scientific-notation-oscilloscope-signal-bench
+     CREATIVE SPARK: You clip the probe to the pin and a green line snaps out of the noise; a nudge of the trigger knob and the waveform stands still, breathing in phosphor over the etched grid, ten divisions wide, every one meaning something.
+     SYSTEM GRAMMAR:
+       - Palette/material: phosphor green blazing on near-black glass, graticule gray etched beneath, a second channel in dimmer trace; amber readouts for armed and warning states
+       - Type/composition: condensed instrument caps on knob skirts and bezels, glowing seven-segment readouts; everything on screen is measured against the ten-division graticule
+       - Topology/navigation: one screen, many signals; you travel by timebase and vertical scale, and channels overlay in the same graticule space rather than separate views
+       - Controls/state: detented knobs set scale and trigger level; an untriggered trace rolls free, a triggered one locks still, and freeze holds the waveform for cursors
+       - Responsive/motion: the graticule stays square while readouts drop below on narrow screens; the sweep is continuous
+     WEB LEVERAGE: canvas draws the persistent phosphor trace from live Web Audio or sensor input, with pointer-dragged trigger level and keyboard-stepped cursors
+     QUALITY BAR: board https://impeccable.style/worlds/cards/scientific-notation-oscilloscope-signal-bench.webp · hero https://impeccable.style/worlds/cards/scientific-notation-oscilloscope-signal-bench-hero.webp
+  6. an interactive type specimen, where dragging an axis slider morphs a whole grid of glyphs in real time
+     SOURCE ID: variable-font-specimen
+     CREATIVE SPARK: A single giant letter fills the screen. You drag the weight slider and it thickens from hairline to black under your finger, live. Below, a grid of every glyph breathes in step, and a monospace readout counts the axis values.
+     SYSTEM GRAMMAR:
+       - Palette/material: Near-white paper and ink black with one foundry accent; flat surfaces, generous negative space, no ornament so the letterforms carry everything.
+       - Type/composition: The specimen face at enormous display size against tiny monospace UI labels; a strict measure and baseline grid; hierarchy by scale contrast alone.
+       - Topology/navigation: Move by axis slider, by glyph cell, and by size and specimen view.
+       - Controls/state: Drag, type, and pin; moving an axis remaps every glyph on the page continuously and updates the live coordinate readout.
+       - Responsive/motion: reduced-motion snaps between named instances instead of animating the interpolation.
+     WEB LEVERAGE: Bind range inputs to CSS font-variation-settings through a custom property, so one slider drives font-variation across the entire glyph grid with no per-glyph JavaScript.
+     QUALITY BAR: board https://impeccable.style/worlds/cards/variable-font-specimen.webp · hero https://impeccable.style/worlds/cards/variable-font-specimen-hero.webp
+A challenger wins only when its fused result beats the grounded list on
+  audience identification and product clarity. It may change task topology or
+  interaction, but never the committed visual identity.
+When you can view images, open the QUALITY BAR board and hero for any
+challenger you weigh seriously and for the world you build. They exist as a
+craft bar, the finish level and commitment the build is expected to reach,
+never as a mockup to copy; your surface serves this product, not that render.
+PRODUCT.md and DESIGN.md constrain every surface candidate's identity
+vocabulary; they do not cancel task-level composition. The seed never
+authorizes a new palette, type system, material world, or unfamiliar control
+behavior.
+The CREATIVE SPARK is a complete visual system, not a theme or decorative
+reference. Translate every supplied system rule into the product: palette and
+material, type and composition, topology, controls and states, and adaptation.
+Keep the source's visible character, scale, rhythm, and interaction instead of
+reducing vivid grammar to generic nouns. Keep a literal carrier only when it
+becomes functional.
+Ambitious motion, spatial media, or interaction is welcome when it strengthens
+the product without weakening semantics, performance, or fallback behavior.
+MODE RULES (persuade, from /home/john/.claude/plugins/cache/impeccable/impeccable/4.5.2/skills/impeccable/reference/mode-persuade.md). They govern this surface's directions and every comp you write or judge for it, the decision comps included; where shared guidance conflicts, these win.
+DIRECTIONS
+When a catalog world's source is itself an interface language, the surface may carry its native grammar across navigation, content, controls, and states, within the platform conventions a native app keeps.
+
+For **Persuade**, the opening must make the offer intelligible and desirable, expose a clear action, and demonstrate something only this product can prove. The action is the one the category's visitors came to take, in its working form: an airline's route-and-dates search, a clinic's open appointment slots, a store's add to cart. A decorative link pointing at it elsewhere does not count. Conversion lives inside the form's own vocabulary: a hook that lands in one line, a visible primary action, a legible reading order. A committed form that hides the offer or the action has not finished translating. For **Experience**, the work itself leads from the first viewport.
+COMPS
+The world may be the carrier of the page, never a picture of it: a facade, a shutter or a book can be what the page is built on, while a viewport painted whole as a facade, a book cover or a travel poster, with no working parts in it, is a picture of the world, not its website. Material coverage is wanted: the world's material is the ground and the major surfaces, its type sets the headlines, and a world reduced to an accent on a neutral template is the category default with a sticker on it. Coverage is not performance: how many regions act out the concept is limited by the depth rule in visualize.md, and the rest stay in the world's material without performing it. Both ends erase the direction: the painted poster, and the generic product page (a headline over subcopy and a button, a row of equal cards below). The dealt composition sets the skeleton, and the compositions you write for comps two and three answer to the same test: a split hero (copy on one side, the product on the other, a badge row under it) or a centred headline over a row of cards is the template whatever world paints it.
+
+The world carries the page's parts and never absorbs them, so wherever it puts one, the page still works as a page: navigation set into a facade reads as links, copy on a shutter as set text a visitor reads, an action on a door plaque as plainly clickable, text reads against whatever sits behind it, the sections keep a steady vertical rhythm, the primary action is unmistakable, and the section below starts as a section rather than more painting. Fix a poster by making its parts work where the world put them, never by moving them into a standard layout on the world's colour: a cover that becomes copy beside a device on marigold has lost the cover.
+
+When the world is an object, the page is that one object seen once, at one scale and from one point of view, and the object keeps its real form: a book opens to two pages on one gutter, never a third panel, and a spine that carries the navigation belongs to the book on the page, never a second book beside it. More content goes on the object's own surfaces or on the next spread below, never on extra copies or impossible folds.
+
+Comps two and three each go further than the first, never cleaner: a bolder use of the same world, where the world's material carries more of the page's structure (still one dominant move, per the depth rule), a larger or stranger focal move, or a composition the category would not attempt.
+TELEMETRY: after the user's choice resolves, rerun this script once with
+  --kind <assigned|pick|challenger|canon> --from f8acb23b --scope surface --mode persuade,
+  adding --chosen <challenger-id> when a dealt challenger won and keeping
+  --register <safer|bolder> when the resolved round came from a steered hand.
+  One ping per resolved attended round. The ping is anonymous, the card kind
+  plus the catalog id when one won; your grounded candidates' names never
+  leave the machine, and the ping is skipped automatically when DO_NOT_TRACK
+  or IMPECCABLE_NO_TELEMETRY is set.
+A user- or brief-pinned decision beats the roll, always.
+DEALT INDICES (restated for truncated readers): 6, 7, 4; index
+6 leads. Present all three dealt structures; seed key f8acb23b.
+PRESENTATION (the decision round, condensed from new-work.md; follow it even when your read of that file came back cut):
+- Present this hand on the decision page: write the options payload (`/home/john/.claude/plugins/cache/impeccable/impeccable/4.5.2/skills/impeccable/scripts/impeccable serve-question --schema` prints its shape), run `/home/john/.claude/plugins/cache/impeccable/impeccable/4.5.2/skills/impeccable/scripts/impeccable serve-question --start --payload <file>`, and open the URL it prints for the user.
+- With image generation, each dealt card declares a comp under .impeccable/mocks/decision/; serve first, then generate them in reading order, lead first, each with its prompt sidecar (a.png gets a.png.json). Without image generation, each card carries an HTML sketch: one self-contained file of the first viewport only (1440 x 900 for a desktop surface; a phone or native surface sketches the device's first screen and declares it as htmlFrame, e.g. "390x844"; fixed height, overflow hidden) at .impeccable/mocks/decision/<card id>.html, declared as the card's html, with real content from the product, inline CSS, no JavaScript, nothing fetched but Google Fonts, under 200 lines. Serve first, then write the sketches, in parallel subagents where your harness has them; the page draws each as a skeleton as it lands; a card without one falls back to a wireframe (shape in --schema). Surface rounds have no pick card and no canon card.
+- After the last comp or sketch lands (at once when this round makes none), hold `/home/john/.claude/plugins/cache/impeccable/impeccable/4.5.2/skills/impeccable/scripts/impeccable serve-question --wait --key <key>`. If your shell hands back a session before --wait exits, keep polling that session until it exits; rerun --wait only after it exits 3 with no answer.
+- Build path: none recorded in .impeccable/config.json or .impeccable/config.local.json, so comp-led whenever image generation exists. Then put "buildPath": {"value": "comp", "toggle": true} in the payload; without image generation there is no toggle and the build is code-led. Never ask about the build path during the round; only when the ANSWER returns buildPathFlipped: true, offer once afterwards to keep the flipped value as the default.
+- The structured question tool is the fallback, never the first channel: take it when --start exits 2, when --wait exits 4 after the page closed unanswered, or when your harness cannot hold a blocking --wait at all (say so in your first reply). It carries the same options and asks nothing about the build path.
+
+# WEIGHING (2026-10-16). Dealt: 6 the index (lead), 7 the sequence, 4 the shell leads. World fixed (maker's catalogue, DESIGN.md).
+# Each challenger fused with the product, judged on audience identification (AI) and product clarity (PC) against the dealt hand.
+# 1 Alien understory (proximity glow): AI loses (MD buyer), PC loses (paths revealed by glow explain nothing). DECLINED. Raise: the hovered route names its destination in words before the visitor commits.
+# 2 Brick build instructions (numbered steps, ghosted prior assembly): AI moderate, PC loses (wordless arrows against plain-language voice). DECLINED. Raise: during the morph the previous notation ghosts rather than vanishes; the resting state snaps to the grid.
+# 3 Ukiyo-e block registration (keyblock never moves): AI loses, PC loses to a table. DECLINED. Raise: the keyblock discipline: the three routes' positions are fixed in every notation; only the notation around them redraws.
+# 4 Toy-shelf window boxes: AI loses, PC loses. DECLINED. Raise: every route row is the summary and stands alone; its page is the detail.
+# 5 Oscilloscope bench: AI loses (instrument costume), PC loses. DECLINED. Raise: the centrepiece's hold state is visible and in words (Running / Paused / Held), never implied.
+# 6 Variable font specimen (one axis drives the whole page; reduced motion snaps between named instances): AI loses (engineers only), PC equal. DECLINED. Raise: one state drives every element of the centrepiece; reduced motion snaps between the named notations instead of animating.
+# Hand: no winning or competitive challengers. Three dealt structures presented as sketches of equal size. Decision page substituted by a plain overview page (John, 15 Oct: the skill's page is unreadable); answer taken in chat.

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { SiteFooter, SiteHeader } from '../components/SiteChrome'
 
 type Experiment = {
   id: string
@@ -55,39 +56,41 @@ export function LabsPage() {
   }, [])
 
   const index = EXPERIMENTS.findIndex((e) => e.id === pick.id) + 1
+  const itemNo = String(index).padStart(2, '0')
 
   return (
-    <div className="labs-stage">
-      <iframe
-        className="labs-frame"
-        src={pick.src}
-        title={`Noventis Labs experiment - ${pick.name}`}
-      />
-
-      <Link className="labs-brand" to="/">
-        Noventis
-      </Link>
-
-      <div className="labs-panel">
-        <p className="eyebrow">
-          Labs &middot; experiment <span className="labs-counter">{index} / {EXPERIMENTS.length}</span>
-        </p>
-        <h1 className="labs-title">{pick.name}</h1>
-        <div className="labs-actions">
-          <button
-            type="button"
-            className="primary-button labs-refresh"
-            onClick={() => window.location.reload()}
-          >
-            Refresh for another &rarr;
-          </button>
-          <Link className="ghost-button" to="/">
-            &larr; Home
-          </Link>
-        </div>
-        <p className="labs-hint">
-          or press <kbd>R</kbd>
-        </p>
+    <div className="pub">
+      <a className="skip" href="#main">
+        Skip to content
+      </a>
+      <div className="wrap">
+        <SiteHeader />
+        <main className="labs" id="main">
+          <div className="labs__head">
+            <h1>
+              <span className="item-no">Labs · item {itemNo} of {String(EXPERIMENTS.length).padStart(2, '0')}</span>
+              {pick.name}
+            </h1>
+            <span className="label">Running in the browser</span>
+          </div>
+          <figure className="plate">
+            <iframe className="labs-frame" src={pick.src} title={`Noventis Labs experiment: ${pick.name}`} />
+            <figcaption className="cap">{pick.name} · written from scratch · runs in the browser</figcaption>
+          </figure>
+          <div className="labs__row">
+            <p>Small things I build to stay sharp, each one written from scratch and running in the browser.</p>
+            <div className="labs-actions">
+              <button type="button" className="btn" onClick={() => window.location.reload()}>
+                Show another
+              </button>
+              <Link to="/">Back to the catalogue</Link>
+              <span className="labs-hint">
+                or press <kbd>R</kbd> for another
+              </span>
+            </div>
+          </div>
+        </main>
+        <SiteFooter />
       </div>
     </div>
   )
