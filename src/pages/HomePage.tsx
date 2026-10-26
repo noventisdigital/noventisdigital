@@ -73,10 +73,6 @@ export function HomePage() {
 
         <main id="main">
           <section className="session" aria-labelledby="hero-title">
-            <div className="session__bar">
-              <span>Noventis · session</span>
-              <span>AI Transformation Expertise</span>
-            </div>
             <div className="session__top">
               <h1 id="hero-title">
                 Most AI consultants ship slides. <span className="nowrap">I ship software.</span>

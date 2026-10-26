@@ -182,11 +182,12 @@ body:has(.pub)::before {
 }
 
 .item-no {
-  font-stretch: 125%;
-  font-weight: 700;
+  font-stretch: 100%;
+  font-weight: 600;
   font-size: 12px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 .flag {
@@ -255,20 +256,6 @@ body:has(.pub)::before {
   border: 1px solid var(--log);
   box-shadow: var(--shadow);
   scroll-margin-top: 16px;
-}
-
-.session__bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--log-key);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--log-mute);
 }
 
 .session__top {
@@ -1294,7 +1281,6 @@ textarea.input {
     margin-top: 18px;
   }
 
-  .session__bar,
   .session__foot {
     padding-left: 18px;
     padding-right: 18px;

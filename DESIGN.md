@@ -72,12 +72,6 @@ typography:
     fontWeight: 600
     lineHeight: 1.5
     letterSpacing: "0.14em"
-  session-bar:
-    fontFamily: "Archivo, Helvetica Neue, Arial, sans-serif"
-    fontSize: "12px"
-    fontWeight: 600
-    lineHeight: 1.5
-    letterSpacing: "0.14em"
   caption:
     fontFamily: "Archivo, Helvetica Neue, Arial, sans-serif"
     fontSize: "11px"
@@ -168,11 +162,6 @@ components:
     textColor: "{colors.log-ink}"
     rounded: "{rounded.none}"
     padding: "0"
-  session-bar:
-    backgroundColor: "{colors.log}"
-    textColor: "{colors.log-mute}"
-    typography: "{typography.session-bar}"
-    padding: "12px 24px"
   session-top:
     backgroundColor: "{colors.log}"
     textColor: "{colors.log-ink}"
@@ -334,7 +323,7 @@ A grey room with ink lettering, one dark plate and one copper accent. Fourteen v
 - **Muted ink** (`ink-mute`): captions, the specification table's row heads, the form note, the policy meta line, the Labs hint. Measures about 4.6:1 on the ground.
 - **Keyline** (`key`): the 1px plate border, the header and section rules, the input border, the portrait border, the `kbd` border, the resting link underline.
 - **Soft keyline** (`key-soft`): every interior rule on a light plate: specification and rules table rows, the caption's top rule, the route row dividers.
-- **Log plate** (`log`), **log lettering** (`log-ink`), **log muted** (`log-mute`), **log key** (`log-key`): the session. The plate is log with a log border; the headline, the request lines, the terminal commands and the foot credit's name are lettering; the bar, the lead, the table's column heads, the terminal comments and the credit roles are muted; every rule inside the session (bar, foot, notation rows, the phone list's rows, the portrait border) is log-key, and the session's resting link underline is log-key. The session button's hover is lettering with log type.
+- **Log plate** (`log`), **log lettering** (`log-ink`), **log muted** (`log-mute`), **log key** (`log-key`): the session. The plate is log with a log border; the headline, the request lines, the terminal commands and the foot credit's name are lettering; the lead, the table's column heads, the terminal comments and the credit roles are muted; every rule inside the session (foot, notation rows, the phone list's rows, the portrait border) is log-key, and the session's resting link underline is log-key. The session button's hover is lettering with log type.
 - **Labs stage** (`labs-stage`): the iframe's background on Labs. The dark field belongs to the experiment inside its plate, never to the page.
 
 ### Named Rules
@@ -361,10 +350,9 @@ A grey room with ink lettering, one dark plate and one copper accent. Fourteen v
 - **Body** (400, 16px, 1.5): the root size; route row problem and answer lines; prose on the person plate; the enquiry text; policy prose at max 66ch; the phone list's request line.
 - **Table** (500, 14px): specification values. Row heads at 400 in muted ink. The rules table reverses it: row heads at 600 in ink, lines at 400 in soft ink.
 - **Note** (400, 13px, soft or muted ink): the credit line in the session foot (1.35 line height), the "Also running" note, the form note, the policy meta, the colophon. The phone list's on-call line is the same size in lettering.
-- **Session bar** (600, 12px, 0.14em, uppercase, log muted): the two ends of the session's bar, NOVENTIS · SESSION and AI TRANSFORMATION EXPERTISE.
 - **Label** (600, 11px, 0.14em, uppercase): section head labels on the ground in soft ink ("Pick yours", "Client portal", "One person", "Enquiry form"); inside the notation the column heads (Request, Route, On call), the diagram's route labels and the hover destination, all at 0.6875em of the 16px base in log muted. Form field names use 0.12em in soft ink.
 - **Caption** (400, 11px, 0.08em, uppercase, muted ink): the line at the foot of every light plate.
-- **Number** (700, 12px, 125% width, 0.14em, uppercase): the route numbers on the routes plate ("01 Build") and "Labs · item NN of 19", always in ink.
+- **Number** (600, 12px, 100% width, 0.12em, uppercase, soft ink): the route numbers on the routes plate ("01 Build") and "Labs · item NN of 19", the lockup's tracked capitals. Until 26 October 2026 it was 700 at 125% width in ink; John: "the 01 BUILD 02 ADOPT font looks crap".
 - **Route path** (600, 13px, 125% width, 0.06em): the route cell of the notation table ("/build"). In the diagram it drops to 11px, 100% width, 0.14em, uppercase, muted, centred on the line. The table's On call cell ("24/7") is 15px in copper.
 - **Flag** (700, 10px, 0.14em, uppercase, 1px ink border): "Sent", "Not sent".
 - **Action** (600, 13px, 0.1em, uppercase): buttons. The index uses the same voice at 12px.
@@ -372,7 +360,7 @@ A grey room with ink lettering, one dark plate and one copper accent. Fourteen v
 - **Mono** (400, 14px, 1.25): the terminal notation only, at 0.875em of the notation's 16px base. Commands and "on-call:" in lettering, comments in log muted, "hello@noventis" in the terminal and "24/7" in the table in copper, a blinking copper block cursor after the last line. On a phone the same face at 13px.
 
 ### Named Rules
-**The One Family Rule.** Archivo is the only typeface on the public world. Expanded (125%) is reserved for item numbers, route numbers and route paths; condensed (88%) for the display and headlines; everything else is 100%. Monospace appears only in the terminal notation.
+**The One Family Rule.** Archivo is the only typeface on the public world. Expanded (125%) is reserved for the route paths in the notation table; condensed (88%) for the display and headlines; everything else, numbers included, is 100%. Monospace appears only in the terminal notation.
 
 **The Tabular Time Rule.** Every automation states when it runs, as a tabular time ("Mondays, 07:30", "02:00 nightly, kept 30 days"). Figures are tabular on the root, so times, prices and counts align in every table.
 
@@ -382,7 +370,7 @@ A grey room with ink lettering, one dark plate and one copper accent. Fourteen v
 
 A single centred column, max 1360px, with 40px side padding (18px at or below 980px). The header is 58px tall over a 1px keyline: wordmark at left, the index (Build, Adopt, Run, About, Send a note) at right in 12px tracked capitals with a 26px gap (18px on narrow screens). Every target is an anchor (`#routes`, `#build`, `#adopt`, `#run`, `#proof`, `#john`, `#contact`); sections, the session and each route row carry a 16px scroll margin.
 
-The session sits 24px under the header and ends at about 735px at 1440 by 900, so the next section head shows under the fold. It is five stacked rows divided by log-key rules: the bar (12px by 24px); the top, a two-column grid of 1.1fr to 1fr with a 48px gap, bottom aligned, 36px 24px 28px, headline left and lead right; the notation, inset 8px each side with no border or shadow of its own; the foot (16px by 24px), credit line left and the button beside a link right.
+The session sits 24px under the header and ends at about 735px at 1440 by 900, so the next section head shows under the fold. It is three stacked rows divided by log-key rules (the 40px bar that opened it, NOVENTIS · SESSION and AI TRANSFORMATION EXPERTISE, was removed on 26 October 2026 at John's request, and the headline now sits at the top of the plate): the top, a two-column grid of 1.1fr to 1fr with a 48px gap, bottom aligned, 36px 24px 28px, headline left and lead right; the notation, inset 8px each side with no border or shadow of its own; the foot (16px by 24px), credit line left and the button beside a link right.
 
 The notation's stage is a 16px base with rows of 5.4em (86.4px) under a 2.6em column head, so the stage is 18.8em tall; it is inset 1em. Its table columns are 52%, 18% and 30%. The cells are placed by percentage of the stage width: request at 0 to 50%, route at 52% to 68%, on call at 70% to 100%. In the diagram the request box ends at 46%, the route label sits at 47% to 65% raised 1.5 cell heights, and the name box starts at 68% on the middle row. The terminal puts the route command at 0 to 34% and the comment at 34% to 100% on the row's upper line (30%), with the on-call line at 0 to 60% on the lower line (72%). The SVG lines read the same 46% and 68% from the source and curve from each request's mid-height to the middle row's mid-height. The stage ends 0.8em above the session foot and the last row's rule is transparent; the notation has no foot of its own.
 
@@ -390,7 +378,7 @@ Below the session the spread grammar holds: "Running today" is 7:5 with a 56px g
 
 Rhythm inside plates is tight: 8px rows in the specification and rules tables, 7px by 10px captions, 20px by 22px route rows, 22px by 24px on the form plate, 32px by 36px on the policy plate.
 
-At or below 980px every grid collapses to one column with a 32px gap. The session's bar and foot pad 18px; the top stacks headline then lead with a 16px gap at 26px 18px 18px; the notation loses its inset. The notation becomes the terminal as a static list: each route is three stacked lines in the mono face at 13px with 3px between them, the command in lettering, the comment in log muted and the on-call line in lettering with "hello@noventis" in the terminal and "24/7" in the table in copper; rows carry 12px vertical padding ruled by log-key with none after the last; the column heads, the lines, the clock and the hover destination are gone. Route rows stack with 6px gaps and 16px by 18px padding; the wordmark descriptor is hidden. At or below 600px the form becomes one column.
+At or below 980px every grid collapses to one column with a 32px gap. The session's foot pads 18px; the top stacks headline then lead with a 16px gap at 26px 18px 18px; the notation loses its inset. The notation becomes the terminal as a static list: each route is three stacked lines in the mono face at 13px with 3px between them, the command in lettering, the comment in log muted and the on-call line in lettering with "hello@noventis" in the terminal and "24/7" in the table in copper; rows carry 12px vertical padding ruled by log-key with none after the last; the column heads, the lines, the clock and the hover destination are gone. Route rows stack with 6px gaps and 16px by 18px padding; the wordmark descriptor is hidden. At or below 600px the form becomes one column.
 
 ## Elevation & Depth
 
@@ -427,7 +415,7 @@ Square. Plates, the session, buttons, flags, inputs, the notation's boxes, the p
 - **Internal Padding:** content sets its own; the caption at the foot is 7px by 10px over a 1px soft keyline, in 11px tracked capitals, muted ink. The portrait plate crops to 4:5. The policy plate is 760px wide with 32px by 36px padding. The sent plate is 22px 24px 24px.
 
 ### The session plate (signature)
-The catalogue's dark plate grown to the first screen. Log face, log border, the plate cast. Four rows ruled by log-key: a bar in 12px tracked log-muted capitals with a line at each end; the top with the display headline in lettering at left and the lead in log muted at right; the route notation; the foot with the credit line (44px portrait with a log-key border, name in lettering at 600, roles in log muted, 13px) at left and the copper session button beside a plain link at right. Links inside the session rest on a log-key rule and turn lettering on hover.
+The catalogue's dark plate grown to the first screen. Log face, log border, the plate cast. Three rows ruled by log-key: the top with the display headline in lettering at left and the lead in log muted at right; the route notation; the foot with the credit line (44px portrait with a log-key border, name in lettering at 600, roles in log muted, 13px) at left and the copper session button beside a plain link at right. Links inside the session rest on a log-key rule and turn lettering on hover.
 
 ### The route notation (signature)
 Three rows that hold their position while the notation around them redraws. Each row is a link to its route (`#build`, `#adopt`, `#run`) carrying three cells: request, route and the person on call. Every cell holds a copy of its text per notation and crossfades between them, so the rows never move; only the cells' left, width, height, top, face and type change, over 0.7s on `cubic-bezier(0.2, 0.7, 0.2, 1)` with a 90ms stagger per row. There is no foot: no caption, no status word, no notation control. The one control is the word Pause (Play while stopped) in the column-head voice at the stage's bottom right, which holds the clock and the cursor until pressed again (an outside review of 17 October 2026 cited WCAG 2.2.2; hover and focus alone do not count as a pause). The stage ends 0.8em above the session foot with its last rule transparent.
@@ -464,7 +452,7 @@ The experiment is the item. The head reads "Labs · item NN of 19" in the number
 - **Do** keep the whole page on the studio-grey ground and put every object on a plate with a 1px border, the plate cast shadow and a caption at its foot.
 - **Do** keep one dark plate at the top, the session, and invert its palette consistently: lettering on log, rules in log-key, the button's hover as lettering with log type.
 - **Do** spend copper only on John and the way to him: the dot, "hello@noventis" in the terminal and "24/7" in the table, the name box, the cursor, the two Send a note buttons.
-- **Do** number items and routes in the expanded number voice (Archivo 125%, 700, 12px, 0.14em) and set the display and headlines condensed (88%).
+- **Do** number items and routes in the number voice (Archivo 100%, 600, 12px, 0.12em, soft ink), the lockup's tracked capitals, and set the display and headlines condensed (88%). Never expand the numbers: John rejected the wide number on 26 October 2026 as he rejected the wide wordmark on 16 October.
 - **Do** write state as a word where it is shown (Sent, Not sent, Sending) and invert for the active or pressed state.
 - **Do** give every automation a tabular time for when it runs.
 - **Do** run all motion off one clock, pause it on hover or focus and stop it from the Pause word, type the terminal in once on first arrival only, rest still on the terminal under reduced motion, and show the static terminal list at or below 980px.
