@@ -101,7 +101,7 @@ export function HomePage() {
 
           <section className="section" id="routes" aria-labelledby="routes-title">
             <div className="section__head">
-              <h2 id="routes-title">The routes</h2>
+              <h2 id="routes-title">What I do</h2>
               <span className="label">Pick yours</span>
             </div>
             <div className="plate routes">

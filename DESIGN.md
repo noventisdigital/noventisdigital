@@ -344,7 +344,7 @@ A grey room with ink lettering and one copper plate. Fifteen values: copper, fou
 
 ### Hierarchy
 - **Display** (600, clamp 34 to 52px, 1.04, 88% width, -0.012em): the session headline only, in lettering, with the second sentence held on one line. The column sets the measure; there is no ch limit. 52px is the session's display step, added on 16 October evening; the morning record topped at 46px. At 390 wide it sits at the clamp floor, 34px.
-- **Headline** (600, 26px, 88% width, -0.01em): section heads (The routes, Running today, The person, Send a note) and the Labs head. The item number sits inside the Labs heading with 14px after it. The Privacy title is the same voice at 34px.
+- **Headline** (600, 26px, 88% width, -0.01em): section heads (What I do, Running today, The person, Send a note) and the Labs head. The item number sits inside the Labs heading with 14px after it. The Privacy title is the same voice at 34px.
 - **Title** (600, 18px, -0.005em): route row titles, the person's opening line, the sent plate's title, policy section heads. The diagram's name box sets John Byrne at the same weight at 15px in ink on copper, with the roles beneath at 72% of that.
 - **Lead** (400, 17px, 1.5): the paragraph beside the headline, in session muted inside the session, max 52ch. (The ground variant in soft ink at 46ch remains in the stylesheet but nothing uses it.)
 - **Request** (500, 17px, 1.25): the request cell of the notation table ("Something needs building"); 14.4px inside the diagram's boxes.
