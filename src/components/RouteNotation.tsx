@@ -23,6 +23,13 @@ const REQUEST_RIGHT = 0.46
 const NAME_LEFT = 0.68
 const HEAD_EM = 2.6
 
+// The page scroll drives the notation. As the stage rises from where it rests on an unscrolled page to
+// just under the top of the viewport, it goes terminal, table, diagram, one third of that travel each.
+// A small dead band on each edge stops it flickering when the scroll settles on a boundary.
+const REST_OFFSET = 24
+const MIN_TRAVEL = 160
+const DEAD_BAND = 0.025
+
 type Geometry = { width: number; fontSize: number; rowHeight: number }
 
 function useMedia(query: string) {
@@ -36,20 +43,27 @@ function useMedia(query: string) {
   return matches
 }
 
-type Props = {
-  start?: Notation
-  period?: number
+function progressFor(stage: HTMLElement) {
+  const top = stage.getBoundingClientRect().top
+  const rest = top + window.scrollY
+  const travel = Math.max(MIN_TRAVEL, rest - REST_OFFSET)
+  return Math.min(1, Math.max(0, (rest - top) / travel))
 }
 
-export function RouteNotation({ start = 'terminal', period = 6400 }: Props) {
+function notationFor(progress: number, current: Notation): Notation {
+  const index = NOTATIONS.indexOf(current)
+  const lower = index / NOTATIONS.length - DEAD_BAND
+  const upper = (index + 1) / NOTATIONS.length + DEAD_BAND
+  if (progress >= lower && progress < upper) return current
+  return NOTATIONS[Math.min(NOTATIONS.length - 1, Math.floor(progress * NOTATIONS.length))]
+}
+
+export function RouteNotation() {
   const reduce = useMedia('(prefers-reduced-motion: reduce)')
   const narrow = useMedia('(max-width: 980px)')
-  const [view, setView] = useState<Notation>(start)
-  const [paused, setPaused] = useState(false)
+  const [view, setView] = useState<Notation>('terminal')
   const [left, setLeft] = useState(false)
-  const [stopped, setStopped] = useState(false)
-  const pausedRef = useRef(false)
-  const stoppedRef = useRef(false)
+  const viewRef = useRef<Notation>('terminal')
   const stageRef = useRef<HTMLDivElement>(null)
   const pathRefs = useRef<(SVGPathElement | null)[]>([])
   const [geometry, setGeometry] = useState<Geometry | null>(null)
@@ -58,23 +72,34 @@ export function RouteNotation({ start = 'terminal', period = 6400 }: Props) {
   const shown: Notation = narrow ? 'terminal' : view
 
   useEffect(() => {
-    pausedRef.current = paused
-  }, [paused])
+    viewRef.current = view
+  }, [view])
 
-  useEffect(() => {
-    stoppedRef.current = stopped
-  }, [stopped])
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isStatic) return
-    const order = [...NOTATIONS.slice(NOTATIONS.indexOf(start)), ...NOTATIONS.slice(0, NOTATIONS.indexOf(start))]
-    const id = window.setInterval(() => {
-      if (pausedRef.current || stoppedRef.current) return
+    const stage = stageRef.current
+    if (!stage) return
+    let frame = 0
+    const update = () => {
+      frame = 0
+      const next = notationFor(progressFor(stage), viewRef.current)
+      if (next === viewRef.current) return
+      viewRef.current = next
       setLeft(true)
-      setView((current) => order[(order.indexOf(current) + 1) % order.length])
-    }, period)
-    return () => window.clearInterval(id)
-  }, [isStatic, period, start])
+      setView(next)
+    }
+    const schedule = () => {
+      if (!frame) frame = window.requestAnimationFrame(update)
+    }
+    update()
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    return () => {
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+      if (frame) window.cancelAnimationFrame(frame)
+    }
+  }, [isStatic])
 
   useLayoutEffect(() => {
     const stage = stageRef.current
@@ -115,12 +140,8 @@ export function RouteNotation({ start = 'terminal', period = 6400 }: Props) {
 
   return (
     <div
-      className={`rt rt--dark${isStatic ? ' rt--static' : ''}${left ? '' : ' rt--first'}${stopped ? ' rt--stopped' : ''}`}
+      className={`rt rt--dark${isStatic ? ' rt--static' : ''}${left ? '' : ' rt--first'}`}
       data-view={shown}
-      onBlur={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onPointerEnter={() => setPaused(true)}
-      onPointerLeave={() => setPaused(false)}
     >
       <div className="rt__stage" ref={stageRef}>
         <div aria-hidden="true" className="rt__cols">
@@ -178,9 +199,6 @@ export function RouteNotation({ start = 'terminal', period = 6400 }: Props) {
         <p className="visually-hidden">
           Every route is answered by {PERSON.name}, {PERSON.roles}.
         </p>
-        <button className="rt__pause" onClick={() => setStopped((current) => !current)} type="button">
-          {stopped ? 'Play' : 'Pause'}
-        </button>
       </div>
     </div>
   )

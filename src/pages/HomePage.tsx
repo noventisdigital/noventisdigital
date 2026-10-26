@@ -1,5 +1,6 @@
 import type { FormEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
+import { PortalDemo } from '../components/PortalDemo'
 import { RouteNotation } from '../components/RouteNotation'
 import { SiteFooter, SiteHeader } from '../components/SiteChrome'
 import { submitPublicContactForm } from '../lib/publicSiteService'
@@ -37,6 +38,27 @@ const rules = [
 
 type FormState = 'idle' | 'sending' | 'sent' | 'failed'
 
+// The catalogue settles on arrival once per visit, never under reduced motion.
+const ARRIVED_KEY = 'noventis-arrived'
+
+function canArrive() {
+  if (typeof window === 'undefined') return false
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false
+  try {
+    return sessionStorage.getItem(ARRIVED_KEY) === null
+  } catch {
+    return true
+  }
+}
+
+function markArrived() {
+  try {
+    sessionStorage.setItem(ARRIVED_KEY, '1')
+  } catch {
+    // sessionStorage may be unavailable
+  }
+}
+
 export function HomePage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -44,7 +66,12 @@ export function HomePage() {
   const [message, setMessage] = useState('')
   const [website, setWebsite] = useState('')
   const [formState, setFormState] = useState<FormState>('idle')
+  const [arrive] = useState(canArrive)
   const statusRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (arrive) markArrived()
+  }, [arrive])
 
   useEffect(() => {
     if (formState === 'sent' || formState === 'failed') {
@@ -64,7 +91,7 @@ export function HomePage() {
   }
 
   return (
-    <div className="pub">
+    <div className={arrive ? 'pub pub--arrive' : 'pub'}>
       <a className="skip" href="#main">
         Skip to content
       </a>
@@ -126,15 +153,9 @@ export function HomePage() {
               <span className="label">Client portal</span>
             </div>
             <div className="item">
-              <figure className="plate">
-                <img
-                  alt="The client portal: a project pack's delivery milestones marked done, current and next, its notes, and the Approve by email and Request changes controls."
-                  height="501"
-                  loading="lazy"
-                  src="/images/portal-milestones.png"
-                  width="745"
-                />
-                <figcaption className="cap">Shown with demo data</figcaption>
+              <figure className="plate plate--portal">
+                <PortalDemo />
+                <figcaption className="cap">Shown with demo data. The buttons work here; in the portal they open an email.</figcaption>
               </figure>
               <div>
                 <table className="specs">

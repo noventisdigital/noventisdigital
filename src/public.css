@@ -666,7 +666,7 @@ body:has(.pub)::before {
   background: var(--fg);
   vertical-align: text-bottom;
   margin-left: 0.5em;
-  animation: rt-blink 1.1s steps(1) infinite;
+  animation: rt-blink 1.1s steps(1) 4;
 }
 
 @keyframes rt-blink {
@@ -675,60 +675,30 @@ body:has(.pub)::before {
   }
 }
 
-.pub .rt__pause {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  z-index: 4;
-  margin: 0;
-  padding: 6px 0 6px 12px;
-  border: 0;
-  background: transparent;
-  font-family: inherit;
-  font-size: 0.6875em;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--fg3);
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.pub .rt__pause:hover {
-  color: var(--fg);
-}
-
-.rt--static .rt__pause {
-  display: none;
-}
-
-.rt--stopped[data-view='terminal'] .rt__row:last-of-type .rt__cell--hnd .rt__t--terminal::after {
-  animation-play-state: paused;
-}
-
 .rt--static *,
 .rt--static *::after {
   transition: none !important;
   animation: none !important;
 }
 
-/* Motion: the terminal types its lines once, on first arrival; after that the notations morph from their held
-   positions with no blank frame, and the diagram's lines draw. */
+/* Motion: the page scroll drives the notation (terminal, table, diagram as the stage rises to the top of the
+   viewport; see RouteNotation.tsx). The terminal types its lines once, on first arrival, held back by --t0 while
+   the plate itself arrives; after that the notations morph from their held positions with no blank frame, and
+   the diagram's lines draw. */
 .rt--first[data-view='terminal'] .rt__t--terminal {
   animation: rt-type 0.6s steps(20, end) both;
 }
 
 .rt--first[data-view='terminal'] .rt__cell--route .rt__t--terminal {
-  animation-delay: calc(var(--i) * 0.6s + 0.15s);
+  animation-delay: calc(var(--i) * 0.6s + 0.15s + var(--t0, 0s));
 }
 
 .rt--first[data-view='terminal'] .rt__cell--req .rt__t--terminal {
-  animation-delay: calc(var(--i) * 0.6s + 0.55s);
+  animation-delay: calc(var(--i) * 0.6s + 0.55s + var(--t0, 0s));
 }
 
 .rt--first[data-view='terminal'] .rt__cell--hnd .rt__t--terminal {
-  animation-delay: calc(var(--i) * 0.6s + 0.85s);
+  animation-delay: calc(var(--i) * 0.6s + 0.85s + var(--t0, 0s));
 }
 
 @keyframes rt-type {
@@ -738,6 +708,60 @@ body:has(.pub)::before {
 
   to {
     clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Arrival: on the first load of a visit the catalogue settles, the copper plate first, then the header and the
+   plates below it, 140ms apart. Once; never under reduced motion (HomePage.tsx decides). The terminal's typing
+   waits 0.4s for the plate. */
+.pub--arrive .cat,
+.pub--arrive main > section,
+.pub--arrive .colophon {
+  animation: arrive 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--arrive) * 140ms);
+}
+
+.pub--arrive .session {
+  --arrive: 0;
+}
+
+.pub--arrive .cat {
+  --arrive: 1;
+}
+
+.pub--arrive main > section:nth-of-type(2) {
+  --arrive: 2;
+}
+
+.pub--arrive main > section:nth-of-type(3) {
+  --arrive: 3;
+}
+
+.pub--arrive main > section:nth-of-type(4) {
+  --arrive: 4;
+}
+
+.pub--arrive main > section:nth-of-type(5) {
+  --arrive: 5;
+}
+
+.pub--arrive .colophon {
+  --arrive: 6;
+}
+
+.pub--arrive .rt {
+  --t0: 0.4s;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
   }
 }
 
@@ -913,6 +937,194 @@ body:has(.pub)::before {
   border-bottom: 1px solid var(--key-soft);
   font-weight: 500;
   vertical-align: top;
+}
+
+/* Running today: the portal itself, working, with demo data. Its own dark system (secure.css) stays inside the
+   plate, like a Labs field; these are its milestone block, notes and two controls at plate scale. */
+.plate--portal {
+  overflow: hidden;
+}
+
+.pdemo {
+  --pd-bg: #0a0a0d;
+  --pd-line: rgba(255, 245, 232, 0.12);
+  --pd-line-strong: rgba(255, 245, 232, 0.22);
+  --pd-text: #f1ece3;
+  --pd-muted: #d4cbbb;
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  background: var(--pd-bg);
+  color: var(--pd-text);
+  font-family: 'Manrope', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.pdemo__card {
+  padding: 16px;
+  border: 1px solid var(--pd-line);
+  border-radius: 18px;
+  background: rgba(255, 250, 244, 0.035);
+}
+
+.pdemo__note {
+  background: rgba(255, 250, 244, 0.045);
+}
+
+.pdemo h3 {
+  margin: 0 0 12px;
+  font-family: inherit;
+  font-stretch: 100%;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.3;
+  letter-spacing: 0;
+  color: var(--pd-text);
+}
+
+.pdemo__note p {
+  color: var(--pd-muted);
+  font-size: 13.5px;
+}
+
+.pdemo__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pdemo__ms {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 12px;
+  border: 1px solid var(--pd-line);
+  border-radius: 14px;
+  background: rgba(255, 250, 244, 0.025);
+}
+
+.pdemo__ms strong {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--pd-text);
+}
+
+.pdemo__ms p {
+  font-size: 13px;
+  color: var(--pd-muted);
+}
+
+.pdemo__state {
+  display: inline-flex;
+  width: fit-content;
+  padding: 4px 9px;
+  border: 1px solid var(--pd-line);
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pd-muted);
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.pdemo__state.is-current {
+  background: rgba(236, 225, 210, 0.08);
+}
+
+.pdemo__state.is-done {
+  background: rgba(161, 191, 164, 0.16);
+  color: #d9efda;
+}
+
+.pdemo__state.is-next {
+  background: rgba(255, 250, 244, 0.05);
+}
+
+.pdemo__state.is-changes {
+  background: var(--copper-soft);
+  border-color: rgba(196, 136, 77, 0.5);
+  color: var(--pd-text);
+}
+
+.pdemo__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
+.pdemo__primary,
+.pdemo__ghost {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.14s, border-color 0.14s, color 0.14s, opacity 0.14s;
+}
+
+.pdemo__primary {
+  border: 1px solid var(--copper);
+  background: var(--copper);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.pdemo__primary:hover {
+  background: #d39a62;
+  border-color: #d39a62;
+}
+
+.pdemo__ghost {
+  border: 1px solid var(--pd-line);
+  background: rgba(255, 250, 244, 0.02);
+  color: var(--pd-text);
+}
+
+.pdemo__ghost:hover {
+  border-color: var(--pd-line-strong);
+}
+
+.pdemo__primary[disabled],
+.pdemo__ghost[disabled] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pdemo__primary[disabled]:hover {
+  background: var(--copper);
+  border-color: var(--copper);
+}
+
+.pdemo__ghost[disabled]:hover {
+  border-color: var(--pd-line);
+}
+
+.pdemo__reset {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--pd-line-strong);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--pd-muted);
+  cursor: pointer;
+}
+
+.pdemo__reset:hover {
+  color: var(--pd-text);
+  border-bottom-color: var(--pd-text);
+}
+
+.pub .pdemo :focus-visible {
+  outline: 2px solid var(--pd-text);
+  outline-offset: 2px;
 }
 
 .routes {
@@ -1371,6 +1583,10 @@ textarea.input {
 }
 
 @media (max-width: 600px) {
+  .pdemo__list {
+    grid-template-columns: 1fr;
+  }
+
   .form-grid {
     grid-template-columns: minmax(0, 1fr);
   }
