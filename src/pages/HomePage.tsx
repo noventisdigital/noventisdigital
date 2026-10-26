@@ -94,7 +94,7 @@ export function HomePage() {
                 <a className="btn" href="#contact">
                   Send a note
                 </a>
-                <a href="#routes">The three routes</a>
+                <a href="#routes">What I do</a>
               </div>
             </div>
           </section>

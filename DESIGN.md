@@ -402,7 +402,7 @@ Square. Plates, the session, buttons, flags, inputs, the notation's boxes, the p
 - **Shape:** square (0 radius), 1px border.
 - **Primary:** copper face and border, ink tracked capitals (13px, 600, 0.1em), 12px by 18px padding. Used for "Send a note" on the form and "Show another" on Labs.
 - **Hover / Focus:** on the ground, inverts to ink face with ground type over 140ms; focus shows the 2px ink outline. Disabled sits at 55% opacity, stays copper, and its label changes to the word "Sending".
-- **Session:** on the copper plate the button inverts: session ink face with cream type; hover goes to a cream face with ink type. Used for "Send a note" in the session foot, beside the plain link "The three routes".
+- **Session:** on the copper plate the button inverts: session ink face with cream type; hover goes to a cream face with ink type. Used for "Send a note" in the session foot, beside the plain link "What I do" (John's words, 26 October 2026, replacing "The three routes").
 
 ### Flags
 - **Style:** 10px bold tracked capitals, 1px ink border, 3px 6px 2px padding, white-space nowrap.
