@@ -1,6 +1,6 @@
 ---
 name: Noventis Digital
-description: The maker's catalogue, opened by a session. One studio-grey ground; the catalogue's one dark plate grown to the first screen with the offer written as three routes to one person; copper marks John and the way to him; below it every object a white keylined plate with a caption. Public world only.
+description: The maker's catalogue, opened by a session. One studio-grey ground; the catalogue's one copper plate grown to the first screen with the offer written as three routes to one person, ink on the brand colour; below it copper marks the way to him and every object is a white keylined plate with a caption. Public world only.
 colors:
   ground: "#e1e4e6"
   plate: "#ffffff"
@@ -9,10 +9,11 @@ colors:
   ink-mute: "#60666b"
   key: "#aeb4b8"
   key-soft: "#cdd2d5"
-  log: "#1b1e21"
-  log-ink: "#d9dde0"
-  log-mute: "#8e969c"
-  log-key: "#30353a"
+  session: "#c4884d"
+  session-ink: "#17110a"
+  session-mute: "#3b2510"
+  session-key: "rgba(23, 17, 10, 0.28)"
+  session-cream: "#f6ede0"
   copper: "#c4884d"
   copper-ring: "rgba(196, 136, 77, 0.16)"
   labs-stage: "#0a0a0d"
@@ -158,55 +159,55 @@ components:
     typography: "{typography.caption}"
     padding: "7px 10px"
   session:
-    backgroundColor: "{colors.log}"
-    textColor: "{colors.log-ink}"
+    backgroundColor: "{colors.session}"
+    textColor: "{colors.session-ink}"
     rounded: "{rounded.none}"
     padding: "0"
   session-top:
-    backgroundColor: "{colors.log}"
-    textColor: "{colors.log-ink}"
+    backgroundColor: "{colors.session}"
+    textColor: "{colors.session-ink}"
     typography: "{typography.display}"
     padding: "36px 24px 28px"
   session-foot:
-    backgroundColor: "{colors.log}"
-    textColor: "{colors.log-mute}"
+    backgroundColor: "{colors.session}"
+    textColor: "{colors.session-mute}"
     typography: "{typography.note}"
     padding: "16px 24px"
   notation:
-    backgroundColor: "{colors.log}"
-    textColor: "{colors.log-ink}"
+    backgroundColor: "{colors.session}"
+    textColor: "{colors.session-ink}"
     typography: "{typography.body}"
     rounded: "{rounded.none}"
     padding: "0 16px"
   notation-label:
-    backgroundColor: "{colors.log}"
-    textColor: "{colors.log-mute}"
+    backgroundColor: "{colors.session}"
+    textColor: "{colors.session-mute}"
     typography: "{typography.label}"
   notation-request-box:
-    backgroundColor: "{colors.log}"
-    textColor: "{colors.log-ink}"
+    backgroundColor: "{colors.session}"
+    textColor: "{colors.session-ink}"
     typography: "{typography.request}"
     rounded: "{rounded.none}"
     padding: "0 14px"
     height: "48px"
   notation-name-box:
-    backgroundColor: "{colors.copper}"
-    textColor: "{colors.ink}"
+    backgroundColor: "{colors.session-ink}"
+    textColor: "{colors.session-cream}"
     typography: "{typography.title}"
     rounded: "{rounded.none}"
     padding: "0 14px"
     height: "64px"
   notation-terminal:
-    backgroundColor: "{colors.log}"
-    textColor: "{colors.log-ink}"
+    backgroundColor: "{colors.session}"
+    textColor: "{colors.session-ink}"
     typography: "{typography.mono}"
   notation-terminal-name:
-    backgroundColor: "{colors.log}"
-    textColor: "{colors.copper}"
+    backgroundColor: "{colors.session}"
+    textColor: "{colors.session-ink}"
     typography: "{typography.mono}"
   notation-table-on-call:
-    backgroundColor: "{colors.log}"
-    textColor: "{colors.copper}"
+    backgroundColor: "{colors.session}"
+    textColor: "{colors.session-ink}"
   button-primary:
     backgroundColor: "{colors.copper}"
     textColor: "{colors.ink}"
@@ -217,14 +218,14 @@ components:
     backgroundColor: "{colors.ink}"
     textColor: "{colors.ground}"
   button-session:
-    backgroundColor: "{colors.copper}"
-    textColor: "{colors.ink}"
+    backgroundColor: "{colors.session-ink}"
+    textColor: "{colors.session-cream}"
     typography: "{typography.action}"
     rounded: "{rounded.none}"
     padding: "12px 18px"
   button-session-hover:
-    backgroundColor: "{colors.log-ink}"
-    textColor: "{colors.log}"
+    backgroundColor: "{colors.session-cream}"
+    textColor: "{colors.session-ink}"
   flag:
     backgroundColor: "{colors.plate}"
     textColor: "{colors.ink}"
@@ -291,7 +292,7 @@ Recorded 16 October 2026, evening, from the shipped three-routes homepage. The m
 
 **Creative North Star: "The Maker's Catalogue"**
 
-The site is a product catalogue and the products are the software. The catalogue opens with a session: its one dark plate, grown to fill the first screen, with the headline set inside it and the offer written as three routes to one person. The same three lines are shown as a terminal, a table and a diagram, redrawn on one clock while the rows hold their place. Below the session the catalogue resumes: the three routes as numbered rows on one plate, the software that is running today on a plate with its specification table, the person by name and face with his four rules as a spec table, and a form. The reference is the British industrial-design catalogue (Anglepoise, Dualit): a flat grey page, objects photographed on white, a line of small capitals under each one.
+The site is a product catalogue and the products are the software. The catalogue opens with a session: its one copper plate, grown to fill the first screen, with the headline set inside it and the offer written as three routes to one person. The same three lines are shown as a terminal, a table and a diagram, redrawn on one clock while the rows hold their place. Below the session the catalogue resumes: the three routes as numbered rows on one plate, the software that is running today on a plate with its specification table, the person by name and face with his four rules as a spec table, and a form. The reference is the British industrial-design catalogue (Anglepoise, Dualit): a flat grey page, objects photographed on white, a line of small capitals under each one.
 
 The page is one studio-grey ground from top to bottom. Nothing sits on a white band. Every object is a plate with a 1px border and the same soft downward cast shadow, as if laid on a works-office desk in daylight. One plate is dark, the session, and inside it the palette inverts: lettering on log, rules in log-key, the pressed state swapping lettering and log. One accent, copper, with one meaning: it marks John and the way to him. The copper dot in the wordmark, "hello@noventis" in the terminal and "24/7" in the table in the terminal and the table, the diagram's name box, the terminal cursor and the two Send a note buttons are copper; everything else is ink and grey, and state still inverts rather than changing hue. One type family, Archivo, does every job by changing width: expanded for numbers and route paths, condensed for headlines, normal for everything else. Monospace appears in one place, the terminal notation.
 
@@ -299,7 +300,7 @@ Confirmed rejections: the category arrangement (headline over sub-copy and a but
 
 **Key Characteristics:**
 - One studio-grey ground across the whole page, never a white band.
-- One dark plate, the session, at the top; every other object a white plate with a 1px keyline, cast shadow and caption at the foot.
+- One copper plate, the session, at the top; every other object a white plate with a 1px keyline, cast shadow and caption at the foot.
 - Three routes to one person: three rows that keep their place while the notation around them redraws on one clock.
 - One accent, copper, only on John and the way to him; state inverts and, where it is shown, is written in words (Sent, Not sent, Sending).
 - One family across widths (Archivo 88 to 125); tabular figures everywhere; monospace only in the terminal notation.
@@ -307,7 +308,7 @@ Confirmed rejections: the category arrangement (headline over sub-copy and a but
 
 ## Colors
 
-A grey room with ink lettering, one dark plate and one copper accent. Fourteen values, of which one is copper and the rest are a ladder from ink to white.
+A grey room with ink lettering and one copper plate. Fifteen values: copper, four derived from it for the plate's type and rules (session ink, muted, key and cream), and a ladder from ink to white.
 
 ### Primary
 - **Ink** (`ink`): all text on the ground, keylines on the strongest objects, the inverted fill of buttons and inverse flags, the rules table's row heads. Selection highlight is ink with ground-coloured text.
@@ -323,13 +324,13 @@ A grey room with ink lettering, one dark plate and one copper accent. Fourteen v
 - **Muted ink** (`ink-mute`): captions, the specification table's row heads, the form note, the policy meta line, the Labs hint. Measures about 4.6:1 on the ground.
 - **Keyline** (`key`): the 1px plate border, the header and section rules, the input border, the portrait border, the `kbd` border, the resting link underline.
 - **Soft keyline** (`key-soft`): every interior rule on a light plate: specification and rules table rows, the caption's top rule, the route row dividers.
-- **Log plate** (`log`), **log lettering** (`log-ink`), **log muted** (`log-mute`), **log key** (`log-key`): the session. The plate is log with a log border; the headline, the request lines, the terminal commands and the foot credit's name are lettering; the lead, the table's column heads, the terminal comments and the credit roles are muted; every rule inside the session (foot, notation rows, the phone list's rows, the portrait border) is log-key, and the session's resting link underline is log-key. The session button's hover is lettering with log type.
+- **Session plate** (`session`), **session ink** (`session-ink`), **session muted** (`session-mute`), **session key** (`session-key`), **session cream** (`session-cream`): the session. The plate is the brand copper with a copper border (John, 26 October 2026, chose it from three colour sketches); the headline, the request lines, the terminal commands, the on-call name, 24/7 and the foot credit's name are session ink; the lead, the table's column heads, the terminal comments and the credit roles are session muted, a brown derived from the copper (4.8:1 on the plate); every rule inside the session (foot, notation rows, the phone list's rows, the portrait border) is session key, a 28% ink wash, and the session's resting link underline is session key. The name box, the cursor and the session button are session ink; the button's type, and its hover face, are session cream.
 - **Labs stage** (`labs-stage`): the iframe's background on Labs. The dark field belongs to the experiment inside its plate, never to the page.
 
 ### Named Rules
 **The One Ground Rule.** The page is `ground` from the top of the header to the bottom of the colophon. Sections are separated by a 1px keyline, never by a change of background. The only dark fields are the session plate and the Labs experiment, and both are plates on the ground, not bands.
 
-**The Inversion Rule.** State is never a hue. Hover, pressed and active leave copper for the plate's own pair. The Send a note button is copper with ink type everywhere; on the ground it goes to ink with ground type on hover, inside the session to lettering with log type. Copper is never a hover or pressed colour; it is a resting mark.
+**The Inversion Rule.** State is never a hue. Hover, pressed and active leave copper for the plate's own pair. The Send a note button on the ground is copper with ink type and goes to ink with ground type on hover; inside the session it is session ink with cream type and goes to cream with ink type on hover. Copper is never a hover or pressed colour; it is the plate and the resting mark.
 
 **The Copper Means John Rule.** Copper is the one accent and it has one meaning: John, and the way to him. It sits on the wordmark's dot, on "hello@noventis" in the terminal and "24/7" in the table and John Byrne's box in the notation, on the terminal cursor and on the two Send a note buttons. Do not spend it on headings, links, rules, numbers, icons or decoration, and never set it as small text on white; if a copper mark does not point at John, it is wrong.
 
@@ -345,7 +346,7 @@ A grey room with ink lettering, one dark plate and one copper accent. Fourteen v
 - **Display** (600, clamp 34 to 52px, 1.04, 88% width, -0.012em): the session headline only, in lettering, with the second sentence held on one line. The column sets the measure; there is no ch limit. 52px is the session's display step, added on 16 October evening; the morning record topped at 46px. At 390 wide it sits at the clamp floor, 34px.
 - **Headline** (600, 26px, 88% width, -0.01em): section heads (The routes, Running today, The person, Send a note) and the Labs head. The item number sits inside the Labs heading with 14px after it. The Privacy title is the same voice at 34px.
 - **Title** (600, 18px, -0.005em): route row titles, the person's opening line, the sent plate's title, policy section heads. The diagram's name box sets John Byrne at the same weight at 15px in ink on copper, with the roles beneath at 72% of that.
-- **Lead** (400, 17px, 1.5): the paragraph beside the headline, in log muted inside the session, max 52ch. (The ground variant in soft ink at 46ch remains in the stylesheet but nothing uses it.)
+- **Lead** (400, 17px, 1.5): the paragraph beside the headline, in session muted inside the session, max 52ch. (The ground variant in soft ink at 46ch remains in the stylesheet but nothing uses it.)
 - **Request** (500, 17px, 1.25): the request cell of the notation table ("Something needs building"); 14.4px inside the diagram's boxes.
 - **Body** (400, 16px, 1.5): the root size; route row problem and answer lines; prose on the person plate; the enquiry text; policy prose at max 66ch; the phone list's request line.
 - **Table** (500, 14px): specification values. Row heads at 400 in muted ink. The rules table reverses it: row heads at 600 in ink, lines at 400 in soft ink.
@@ -357,7 +358,7 @@ A grey room with ink lettering, one dark plate and one copper accent. Fourteen v
 - **Flag** (700, 10px, 0.14em, uppercase, 1px ink border): "Sent", "Not sent".
 - **Action** (600, 13px, 0.1em, uppercase): buttons. The index uses the same voice at 12px.
 - **Wordmark** (600, 14px, 0.28em, uppercase, 100% width): NOVENTIS, with the descriptor beneath at 12.5px in soft ink.
-- **Mono** (400, 14px, 1.25): the terminal notation only, at 0.875em of the notation's 16px base. Commands and "on-call:" in lettering, comments in log muted, "hello@noventis" in the terminal and "24/7" in the table in copper, a blinking copper block cursor after the last line. On a phone the same face at 13px.
+- **Mono** (400, 14px, 1.25): the terminal notation only, at 0.875em of the notation's 16px base. Commands and "on-call:" in session ink, comments in session muted, "hello@noventis" in the terminal and "24/7" in the table in session ink at 600, a blinking ink block cursor after the last line. On a phone the same face at 13px.
 
 ### Named Rules
 **The One Family Rule.** Archivo is the only typeface on the public world. Expanded (125%) is reserved for the route paths in the notation table; condensed (88%) for the display and headlines; everything else, numbers included, is 100%. Monospace appears only in the terminal notation.
@@ -370,7 +371,7 @@ A grey room with ink lettering, one dark plate and one copper accent. Fourteen v
 
 A single centred column, max 1360px, with 40px side padding (18px at or below 980px). The header is 58px tall over a 1px keyline: wordmark at left, the index (Build, Adopt, Run, About, Send a note) at right in 12px tracked capitals with a 26px gap (18px on narrow screens). Every target is an anchor (`#routes`, `#build`, `#adopt`, `#run`, `#proof`, `#john`, `#contact`); sections, the session and each route row carry a 16px scroll margin.
 
-The session sits 24px under the header and ends at about 735px at 1440 by 900, so the next section head shows under the fold. It is three stacked rows divided by log-key rules (the 40px bar that opened it, NOVENTIS · SESSION and AI TRANSFORMATION EXPERTISE, was removed on 26 October 2026 at John's request, and the headline now sits at the top of the plate): the top, a two-column grid of 1.1fr to 1fr with a 48px gap, bottom aligned, 36px 24px 28px, headline left and lead right; the notation, inset 8px each side with no border or shadow of its own; the foot (16px by 24px), credit line left and the button beside a link right.
+The session sits 24px under the header and ends at about 735px at 1440 by 900, so the next section head shows under the fold. It is three stacked rows divided by session-key rules (the 40px bar that opened it, NOVENTIS · SESSION and AI TRANSFORMATION EXPERTISE, was removed on 26 October 2026 at John's request, and the headline now sits at the top of the plate): the top, a two-column grid of 1.1fr to 1fr with a 48px gap, bottom aligned, 36px 24px 28px, headline left and lead right; the notation, inset 8px each side with no border or shadow of its own; the foot (16px by 24px), credit line left and the button beside a link right.
 
 The notation's stage is a 16px base with rows of 5.4em (86.4px) under a 2.6em column head, so the stage is 18.8em tall; it is inset 1em. Its table columns are 52%, 18% and 30%. The cells are placed by percentage of the stage width: request at 0 to 50%, route at 52% to 68%, on call at 70% to 100%. In the diagram the request box ends at 46%, the route label sits at 47% to 65% raised 1.5 cell heights, and the name box starts at 68% on the middle row. The terminal puts the route command at 0 to 34% and the comment at 34% to 100% on the row's upper line (30%), with the on-call line at 0 to 60% on the lower line (72%). The SVG lines read the same 46% and 68% from the source and curve from each request's mid-height to the middle row's mid-height. The stage ends 0.8em above the session foot and the last row's rule is transparent; the notation has no foot of its own.
 
@@ -382,7 +383,7 @@ At or below 980px every grid collapses to one column with a 32px gap. The sessio
 
 ## Elevation & Depth
 
-One shadow and it is always on. Every plate, the session included, carries the same two-part cast shadow at rest: a soft downward throw and a 1px contact line. The notation inside the session carries no shadow and no border; it is part of the plate, not an object on it. Depth is otherwise drawn, not lit: keylines separate objects from the ground, soft keylines rule light interiors, log-key rules dark ones, and the diagram's arrows are 1px strokes in lettering. Nothing lifts, blurs or glows on hover; hover changes a border colour, inverts a fill, or (on a table row) lays a 6% wash of lettering over the row. Copper is flat: no ring, glow or shadow of its own anywhere but the wordmark's artwork ring.
+One shadow and it is always on. Every plate, the session included, carries the same two-part cast shadow at rest: a soft downward throw and a 1px contact line. The notation inside the session carries no shadow and no border; it is part of the plate, not an object on it. Depth is otherwise drawn, not lit: keylines separate objects from the ground, soft keylines rule light interiors, session key rules the copper plate, and the diagram's arrows are 1px strokes in session ink. Nothing lifts, blurs or glows on hover; hover changes a border colour, inverts a fill, or (on a table row) lays a 6% wash of ink over the row. Copper is flat: no ring, glow or shadow of its own anywhere but the wordmark's artwork ring; the session plate carries the same cast shadow as every plate, warmed towards the copper.
 
 ### Shadow Vocabulary
 - **Plate cast** (`box-shadow: 0 26px 48px -30px rgba(20,22,24,.55), 0 1px 2px rgba(20,22,24,.14)`): every plate at rest and in every state, light or dark. The deck uses the same shadow doubled for slide scale (`0 40px 70px -44px` plus `0 2px 4px`).
@@ -393,7 +394,7 @@ One shadow and it is always on. Every plate, the session included, carries the s
 
 ## Shapes
 
-Square. Plates, the session, buttons, flags, inputs, the notation's boxes, the portrait and the status box all have 0 radius and a 1px border (keyline for light plates and inputs, log for the session, copper for both Send a note buttons and the diagram's name box, ink for flags and the status box, log muted for the diagram's request boxes). One thing rounds: the copper dot, a 10px circle. The focus ring is a 2px ink outline at 3px offset (1px offset inside inputs). Links are underlined by a 1px keyline that turns ink on hover (log-key turning lettering inside the session); index and colophon links show the rule only on hover or when current. The diagram's arrows are 1px cubic curves ending in a 7px filled arrowhead, drawn by dash offset. The terminal cursor is a 0.55em by 1.05em copper block.
+Square. Plates, the session, buttons, flags, inputs, the notation's boxes, the portrait and the status box all have 0 radius and a 1px border (keyline for light plates and inputs, copper for the session and the form's Send a note button, session ink for the session's button and the diagram's name box, ink for flags and the status box, session muted for the diagram's request boxes). One thing rounds: the copper dot, a 10px circle. The focus ring is a 2px ink outline at 3px offset (1px offset inside inputs). Links are underlined by a 1px keyline that turns ink on hover (session key turning session ink inside the session); index and colophon links show the rule only on hover or when current. The diagram's arrows are 1px cubic curves ending in a 7px filled arrowhead, drawn by dash offset. The terminal cursor is a 0.55em by 1.05em session-ink block.
 
 ## Components
 
@@ -401,7 +402,7 @@ Square. Plates, the session, buttons, flags, inputs, the notation's boxes, the p
 - **Shape:** square (0 radius), 1px border.
 - **Primary:** copper face and border, ink tracked capitals (13px, 600, 0.1em), 12px by 18px padding. Used for "Send a note" on the form and "Show another" on Labs.
 - **Hover / Focus:** on the ground, inverts to ink face with ground type over 140ms; focus shows the 2px ink outline. Disabled sits at 55% opacity, stays copper, and its label changes to the word "Sending".
-- **Session:** the same copper button inside the dark plate; hover goes to lettering face with log type. Used for "Send a note" in the session foot, beside the plain link "The three routes".
+- **Session:** on the copper plate the button inverts: session ink face with cream type; hover goes to a cream face with ink type. Used for "Send a note" in the session foot, beside the plain link "The three routes".
 
 ### Flags
 - **Style:** 10px bold tracked capitals, 1px ink border, 3px 6px 2px padding, white-space nowrap.
@@ -409,19 +410,19 @@ Square. Plates, the session, buttons, flags, inputs, the notation's boxes, the p
 
 ### Plates
 - **Corner Style:** square.
-- **Background:** plate white; the session is the one dark plate.
+- **Background:** plate white; the session is the one copper plate.
 - **Shadow Strategy:** the plate cast, always.
-- **Border:** 1px keyline; the session's border is log.
+- **Border:** 1px keyline; the session's border is copper.
 - **Internal Padding:** content sets its own; the caption at the foot is 7px by 10px over a 1px soft keyline, in 11px tracked capitals, muted ink. The portrait plate crops to 4:5. The policy plate is 760px wide with 32px by 36px padding. The sent plate is 22px 24px 24px.
 
 ### The session plate (signature)
-The catalogue's dark plate grown to the first screen. Log face, log border, the plate cast. Three rows ruled by log-key: the top with the display headline in lettering at left and the lead in log muted at right; the route notation; the foot with the credit line (44px portrait with a log-key border, name in lettering at 600, roles in log muted, 13px) at left and the copper session button beside a plain link at right. Links inside the session rest on a log-key rule and turn lettering on hover.
+The catalogue's copper plate grown to the first screen (John, 26 October 2026: "the site still lacks colour"; he chose the copper plate from three sketches over a green plate and a two-colour print). Copper face, copper border, the plate cast warmed. Three rows ruled by session key: the top with the display headline in session ink at left and the lead in session muted at right; the route notation; the foot with the credit line (44px portrait with a session-key border, name in session ink at 600, roles in session muted, 13px) at left and the ink session button with cream type beside a plain link at right. Links inside the session rest on a session-key rule and turn session ink on hover.
 
 ### The route notation (signature)
 Three rows that hold their position while the notation around them redraws. Each row is a link to its route (`#build`, `#adopt`, `#run`) carrying three cells: request, route and the person on call. Every cell holds a copy of its text per notation and crossfades between them, so the rows never move; only the cells' left, width, height, top, face and type change, over 0.7s on `cubic-bezier(0.2, 0.7, 0.2, 1)` with a 90ms stagger per row. There is no foot: no caption, no status word, no notation control. The one control is the word Pause (Play while stopped) in the column-head voice at the stage's bottom right, which holds the clock and the cursor until pressed again (an outside review of 17 October 2026 cited WCAG 2.2.2; hover and focus alone do not count as a pause). The stage ends 0.8em above the session foot with its last rule transparent.
-- **Terminal (rest):** monospace, 14px, two lines per row: `$ noventis build` in lettering with `# something needs building` in log muted on the upper line, `on-call: hello@noventis` on the lower with "hello@noventis" in the terminal and "24/7" in the table in copper; a copper block cursor blinks after the last line at 1.1s in steps. On first arrival only, the lines type in: each text is revealed by a clip-path over 0.6s in 20 steps, the command at row × 0.6s + 0.15s, the comment at + 0.55s, the on-call line at + 0.85s. Later returns to the terminal morph from the held positions with no blank frame.
-- **Table:** column heads Request, Route, On call in 11px capitals over a lettering rule; request at 17px 500, route path at 13px 600 expanded, "24/7" at 15px in copper; rows ruled by log-key. No arrival animation of its own; the cells morph into place. Hovering a row washes it 6% and shows the route's name at the right in capitals.
-- **Diagram:** each request becomes a 3em box with a log-muted border; the route path becomes an 11px uppercase label raised above its line; the three on-call cells converge into one 4em name box on the middle row, copper face with ink type, "John Byrne" at 600 with the roles beneath; three 1px curves draw from the boxes to the name box over 0.6s after a 0.25s delay, ending in arrowheads; the row rules go transparent.
+- **Terminal (rest):** monospace, 14px, two lines per row: `$ noventis build` in session ink with `# something needs building` in session muted on the upper line, `on-call: hello@noventis` on the lower with "hello@noventis" in session ink at 600; an ink block cursor blinks after the last line at 1.1s in steps. On first arrival only, the lines type in: each text is revealed by a clip-path over 0.6s in 20 steps, the command at row × 0.6s + 0.15s, the comment at + 0.55s, the on-call line at + 0.85s. Later returns to the terminal morph from the held positions with no blank frame.
+- **Table:** column heads Request, Route, On call in 11px capitals over a session-ink rule; request at 17px 500, route path at 13px 600 expanded, "24/7" at 15px in session ink at 600; rows ruled by session key. No arrival animation of its own; the cells morph into place. Hovering a row washes it 6% and shows the route's name at the right in capitals.
+- **Diagram:** each request becomes a 3em box with a session-muted border; the route path becomes an 11px uppercase label raised above its line; the three on-call cells converge into one 4em name box on the middle row, session ink face with cream type, "John Byrne" at 600 with the roles beneath; three 1px curves draw from the boxes to the name box over 0.6s after a 0.25s delay, ending in arrowheads; the row rules go transparent.
 - **Clock:** terminal, table, diagram every 6.4s, the only driver. Pointer entry or focus pauses it; the Pause word stops it until Play.
 - **Reduced motion:** the notation rests on the terminal, still, with every transition and animation off.
 - **At or below 980px:** the terminal as a static list of three lines per route, no clock, no heads, no lines. See Layout.
@@ -450,8 +451,8 @@ The experiment is the item. The head reads "Labs · item NN of 19" in the number
 
 ### Do:
 - **Do** keep the whole page on the studio-grey ground and put every object on a plate with a 1px border, the plate cast shadow and a caption at its foot.
-- **Do** keep one dark plate at the top, the session, and invert its palette consistently: lettering on log, rules in log-key, the button's hover as lettering with log type.
-- **Do** spend copper only on John and the way to him: the dot, "hello@noventis" in the terminal and "24/7" in the table, the name box, the cursor, the two Send a note buttons.
+- **Do** keep one copper plate at the top, the session, and invert its palette consistently: ink type on copper, rules in session key, John's marks in ink, the button's hover as cream with ink type.
+- **Do** spend copper on the plate and the way to John: the session plate, the dot, the form's Send a note button. Nothing else on the ground is copper; on the plate John's marks are ink.
 - **Do** number items and routes in the number voice (Archivo 100%, 600, 12px, 0.12em, soft ink), the lockup's tracked capitals, and set the display and headlines condensed (88%). Never expand the numbers: John rejected the wide number on 26 October 2026 as he rejected the wide wordmark on 16 October.
 - **Do** write state as a word where it is shown (Sent, Not sent, Sending) and invert for the active or pressed state.
 - **Do** give every automation a tabular time for when it runs.

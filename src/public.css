@@ -25,10 +25,12 @@ body:has(.pub)::before {
   --ink-mute: #60666b;
   --key: #aeb4b8;
   --key-soft: #cdd2d5;
-  --log: #1b1e21;
-  --log-ink: #d9dde0;
-  --log-mute: #8e969c;
-  --log-key: #30353a;
+  --session: #c4884d;
+  --session-ink: #17110a;
+  --session-mute: #3b2510;
+  --session-key: rgba(23, 17, 10, 0.28);
+  --session-cream: #f6ede0;
+  --session-shadow: 0 26px 48px -30px rgba(90, 50, 10, 0.7), 0 1px 2px rgba(20, 22, 24, 0.14);
   --copper: #c4884d;
   --copper-soft: rgba(196, 136, 77, 0.16);
   --shadow: 0 26px 48px -30px rgba(20, 22, 24, 0.55), 0 1px 2px rgba(20, 22, 24, 0.14);
@@ -248,13 +250,14 @@ body:has(.pub)::before {
   border-bottom-color: var(--ink);
 }
 
-/* Session: the catalogue's one dark plate, grown to the first screen */
+/* Session: the catalogue's one copper plate, grown to the first screen. Ink type on the brand colour; on the
+   plate John's marks invert to ink, and below it copper marks the way to him. */
 .session {
   margin-top: 24px;
-  background: var(--log);
-  color: var(--log-ink);
-  border: 1px solid var(--log);
-  box-shadow: var(--shadow);
+  background: var(--session);
+  color: var(--session-ink);
+  border: 1px solid var(--session);
+  box-shadow: var(--session-shadow);
   scroll-margin-top: 16px;
 }
 
@@ -272,7 +275,7 @@ body:has(.pub)::before {
   font-size: clamp(34px, 2.4vw + 16px, 52px);
   line-height: 1.04;
   letter-spacing: -0.012em;
-  color: var(--log-ink);
+  color: var(--session-ink);
 }
 
 .nowrap {
@@ -289,7 +292,7 @@ body:has(.pub)::before {
 
 .session .lead {
   margin: 0;
-  color: var(--log-mute);
+  color: var(--session-mute);
   max-width: 52ch;
 }
 
@@ -300,48 +303,37 @@ body:has(.pub)::before {
   align-items: center;
   gap: 16px 24px;
   padding: 16px 24px;
-  border-top: 1px solid var(--log-key);
+  border-top: 1px solid var(--session-key);
 }
 
 .session .who {
   margin: 0;
-  color: var(--log-mute);
+  color: var(--session-mute);
 }
 
 .session .who b {
-  color: var(--log-ink);
+  color: var(--session-ink);
 }
 
 .session .who img {
-  border-color: var(--log-key);
+  border-color: var(--session-key);
 }
 
 .session .actions {
   margin: 0;
 }
 
-.pub .session .btn {
-  background: var(--log-ink);
-  color: var(--log);
-  border-color: var(--log-ink);
-}
-
-.pub .session .btn:hover {
-  background: transparent;
-  color: var(--log-ink);
-}
-
 .pub .session a {
-  border-bottom-color: var(--log-key);
+  border-bottom-color: var(--session-key);
 }
 
 .pub .session a:hover {
-  border-bottom-color: var(--log-ink);
+  border-bottom-color: var(--session-ink);
 }
 
-/* The global ring is ink, which vanishes on the dark plate. */
+/* The global ring is ink; keep it ink on the plate, where the type is ink too. */
 .pub .session :focus-visible {
-  outline-color: var(--log-ink);
+  outline-color: var(--session-ink);
 }
 
 .session .rt {
@@ -377,17 +369,17 @@ body:has(.pub)::before {
 
 .rt--dark,
 .rt[data-view='terminal'] {
-  --bg: var(--log);
-  --fg: var(--log-ink);
-  --fg2: var(--log-ink);
-  --fg3: var(--log-mute);
-  --rule: var(--log-key);
-  --rule-strong: var(--log-ink);
-  --box: var(--log-mute);
-  --inv-bg: var(--log-ink);
-  --inv-fg: var(--log);
+  --bg: var(--session);
+  --fg: var(--session-ink);
+  --fg2: var(--session-ink);
+  --fg3: var(--session-mute);
+  --rule: var(--session-key);
+  --rule-strong: var(--session-ink);
+  --box: var(--session-mute);
+  --inv-bg: var(--session-ink);
+  --inv-fg: var(--session-cream);
 
-  border-color: var(--log);
+  border-color: var(--session);
 }
 
 .rt__cols span {
@@ -470,7 +462,7 @@ body:has(.pub)::before {
 }
 
 .rt[data-view='table'] .rt__row:hover {
-  background: rgba(217, 221, 224, 0.06);
+  background: rgba(23, 17, 10, 0.06);
 }
 
 .pub .rt__link {
@@ -749,36 +741,32 @@ body:has(.pub)::before {
   }
 }
 
-/* Colour: copper is the one accent, and it marks John and the way to him */
+/* Colour: copper is the plate at the top. On it John's marks (the on-call line, 24/7, the name box, the cursor,
+   the button) invert to ink; below it copper marks the way to him (the dot, the form's button). */
 .pub .session .btn {
-  background: var(--copper);
-  color: var(--ink);
-  border-color: var(--copper);
+  background: var(--session-ink);
+  color: var(--session-cream);
+  border-color: var(--session-ink);
 }
 
 .pub .session .btn:hover {
-  background: var(--log-ink);
-  color: var(--log);
-  border-color: var(--log-ink);
+  background: var(--session-cream);
+  color: var(--session-ink);
+  border-color: var(--session-cream);
 }
 
 .rt[data-view='table'] .rt__cell--hnd {
-  color: var(--copper);
+  color: var(--session-ink);
+  font-weight: 600;
 }
 
 .rt__t--terminal b {
-  color: var(--copper);
-  font-weight: 400;
-}
-
-.rt--dark[data-view='diagram'] .rt__cell--hnd {
-  background: var(--copper);
-  color: var(--ink);
-  border-color: var(--copper);
+  color: var(--session-ink);
+  font-weight: 600;
 }
 
 .rt[data-view='terminal'] .rt__row:last-of-type .rt__cell--hnd .rt__t--terminal::after {
-  background: var(--copper);
+  background: var(--session-ink);
 }
 
 
@@ -1317,7 +1305,7 @@ textarea.input {
     display: grid;
     gap: 3px;
     padding: 12px 0;
-    border-bottom: 1px solid var(--log-key);
+    border-bottom: 1px solid var(--session-key);
   }
 
   .rt[data-view] .rt__row:last-of-type {
@@ -1344,17 +1332,17 @@ textarea.input {
 
   .rt[data-view] .rt__cell--route {
     order: 1;
-    color: var(--log-ink);
+    color: var(--session-ink);
   }
 
   .rt[data-view] .rt__cell--req {
     order: 2;
-    color: var(--log-mute);
+    color: var(--session-mute);
   }
 
   .rt[data-view] .rt__cell--hnd {
     order: 3;
-    color: var(--log-ink);
+    color: var(--session-ink);
   }
 
   .rt[data-view] .rt__t {
